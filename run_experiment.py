@@ -13,6 +13,8 @@ def main():
     parser.add_argument("--dataset", default="PROTEINS")
     parser.add_argument("--model", required=True)
     parser.add_argument("--hidden_dim", default=64, type=int)
+    parser.add_argument("--num_layers", default=2, type=int)
+    parser.add_argument("--dropout", default=0.0, type=float)
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--weight_decay", default=0.0, type=float)
@@ -38,6 +40,7 @@ def main():
             input_dim=dataset[0].x.shape[0],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
+            num_layers=args.num_layers,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
@@ -46,6 +49,8 @@ def main():
         wandb.init(project="control_gnns", config=TrainConfig)
         wandb.config.model = args.model
         wandb.config.hidden_dim = args.hidden_dim
+        wandb.config.num_layers = args.num_layers
+        wandb.config.dropout_rate = args.dropout
         logger = wandb
     else:
         logger = BasicLogger()
