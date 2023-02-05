@@ -41,6 +41,7 @@ def main():
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
             num_layers=args.num_layers,
+            dropout_rate=args.dropout,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
