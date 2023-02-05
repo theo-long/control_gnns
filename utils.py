@@ -23,3 +23,12 @@ class BasicLogger(Logger):
         if isinstance(message, dict):
             message = ", ".join([f"{k}:{v}" for k, v in message.items()])
         self.logger.info(message)
+
+
+class PrintLogger(Logger):
+    """Logger that just uses print method"""
+
+    def log(self, message):
+        if isinstance(message, dict):
+            message = ", ".join([f"{k}:{v}" for k, v in message.items()])
+        print(message)
