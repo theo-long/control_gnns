@@ -36,7 +36,7 @@ class BasicGCN(nn.Module):
             x = nn.functional.relu(x)
             x = nn.functional.dropout(x, p=self.dropout_rate, training=self.training)
 
-        self.conv_layers[-1](x, data.edge_index)
+        x = self.conv_layers[-1](x, data.edge_index)
         yhat = global_add_pool(x, data.batch)
 
         return yhat
