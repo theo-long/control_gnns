@@ -30,7 +30,7 @@ def main():
 
     dataset = get_tu_dataset(args.dataset)
     train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, args.batchsize
+        dataset, args.batch_size
     )
 
     if args.model == "GCN":
