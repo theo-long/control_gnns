@@ -24,7 +24,7 @@ class BasicGCN(nn.Module):
         for i in range(num_layers - 1):
             conv_layers.append(GCNConv(hidden_dim, hidden_dim))
         conv_layers.append(GCNConv(hidden_dim, output_dim))
-        conv_layers = nn.ModuleList(conv_layers)
+        self.conv_layers = nn.ModuleList(conv_layers)
 
         self.dropout_rate = dropout_rate
 
