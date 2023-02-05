@@ -22,7 +22,7 @@ def train(
     for i, batch in enumerate(dataloader):
         optimiser.zero_grad()
         y_hat = model(batch)
-        loss = loss_fct(y_hat, batch.y)
+        loss = loss_fct(y_hat, batch.y, reduction="sum")
         metric = metric_fct(y_hat, batch.y)
         loss.backward()
         optimiser.step()
