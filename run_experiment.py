@@ -33,7 +33,7 @@ def main():
         dataset, args.batch_size
     )
 
-    if args.model == "GCN":
+    if args.model.lower() == "gcn":
         model = BasicGCN(
             input_dim=dataset[0].x.shape[0],
             output_dim=dataset.num_classes,
