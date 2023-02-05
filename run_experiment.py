@@ -37,7 +37,7 @@ def main():
 
     if args.model.lower() == "gcn":
         model = BasicGCN(
-            input_dim=dataset[0].x.shape[0],
+            input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
             num_layers=args.num_layers,
