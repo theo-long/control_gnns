@@ -11,7 +11,7 @@ from torchmetrics import Accuracy
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="PROTEINS")
-    parser.add_argument("--model")
+    parser.add_argument("--model", required=True)
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--epochs", default=10, type=int)
