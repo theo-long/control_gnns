@@ -13,7 +13,9 @@ class LinearGCN(nn.Module):
 class BasicGCN(nn.Module):
     """The original GCN architecture from Kipf and Welling."""
 
-    def __init__(self, input_dim, output_dim, hidden_dim, num_layers) -> None:
+    def __init__(
+        self, input_dim, output_dim, hidden_dim, num_layers, dropout_rate
+    ) -> None:
         super().__init__()
 
         self.embedding = nn.Linear(input_dim, hidden_dim)
@@ -24,12 +26,15 @@ class BasicGCN(nn.Module):
         conv_layers.append(GCNConv(hidden_dim, output_dim))
         conv_layers = nn.ModuleList(conv_layers)
 
+        self.dropout_rate = dropout_rate
+
     def forward(self, data):
         x = self.embedding(data.x)
 
         for layer in self.conv_layers[:-1]:
             x = layer(x, data.edge_index)
             x = nn.functional.relu(x)
+            x = nn.functional.dropout(x, p=self.dropout_rate, training=self.training)
 
         self.conv_layers[-1](x)
         yhat = global_add_pool(x, data.batch)
