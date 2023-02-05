@@ -57,7 +57,7 @@ def main():
         logger = BasicLogger()
 
     accuracy_function = Accuracy("multiclass", num_classes=dataset.num_classes)
-    train_eval(
+    final_stats = train_eval(
         model,
         training_config,
         train_loader,
@@ -67,6 +67,8 @@ def main():
         metric_function=accuracy_function,
         logger=logger,
     )
+
+    print(f"Training completed, final stats:\n {final_stats}")
 
 
 if __name__ == "__main__":
