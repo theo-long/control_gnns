@@ -1,1 +1,1 @@
-from gcn_baseline import BasicGCN, LinearGCN
+from .gcn_baseline import BasicGCN, LinearGCN
