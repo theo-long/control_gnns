@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 
 logger = logging.getLogger()
+logging.basicConfig(level=logging.INFO)
 
 
 class Logger(ABC):
