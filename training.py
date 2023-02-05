@@ -21,7 +21,7 @@ def train(
     model.train()
     for i, batch in enumerate(dataloader):
         optimiser.zero_grad()
-        y_hat, _ = model(batch)
+        y_hat = model(batch)
         loss = loss_fct(y_hat, batch.y)
         metric = metric_fct(y_hat, batch.y)
         loss.backward()
@@ -44,7 +44,7 @@ def evaluate(dataloader, model, loss_fct, metrics_fct):
     metrics_eval = 0
     loss_eval = 0
     for batch in dataloader:
-        y_hat, _ = model(batch)
+        y_hat = model(batch)
         metrics = metrics_fct(y_hat, batch.y)
         loss = loss_fct(y_hat, batch.y)
 
