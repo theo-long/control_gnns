@@ -15,7 +15,7 @@ def get_tu_dataset(name):
 
 def generate_dataloaders(dataset: TUDataset, batch_size):
     # random shuffle before splitting
-    dataset.shuffle()
+    dataset = dataset.shuffle()
     loaders = []
     index = 0
     for split in [TRAIN_SPLIT, VAL_SPLIT, TEST_SPLIT]:
