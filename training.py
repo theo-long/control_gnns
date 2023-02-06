@@ -48,8 +48,9 @@ def evaluate(dataloader, model, loss_fct, metrics_fct):
         metrics = metrics_fct(y_hat, batch.y)
         loss = loss_fct(y_hat, batch.y)
 
-        metrics_eval += metrics.data
+        metrics_eval += metrics.data * batch.y.shape[0]
         loss_eval += loss.data
+    metrics_eval /= len(dataloader.dataset)
     return loss_eval, metrics_eval
 
 
