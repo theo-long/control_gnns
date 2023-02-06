@@ -11,6 +11,7 @@ from torchmetrics import Accuracy
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="PROTEINS")
+    parser.add_argument("-n", "--name", default=None)
     parser.add_argument("--model", required=True)
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--num_layers", default=2, type=int)
@@ -52,6 +53,8 @@ def main():
         wandb.config.hidden_dim = args.hidden_dim
         wandb.config.num_layers = args.num_layers
         wandb.config.dropout_rate = args.dropout
+        if args.name:
+            wandb.run.name = args.name
         logger = wandb
     else:
         logger = BasicLogger()
