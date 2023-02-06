@@ -102,6 +102,9 @@ def main():
         )
         stats.append(final_stats)
 
+        if not args.debug:
+            run.finish()
+
     stats_df = pd.DataFrame(stats)
     mean_stats = stats_df.mean().to_dict()
     std_stats = stats_df.std().to_dict()
