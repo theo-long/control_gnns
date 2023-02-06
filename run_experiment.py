@@ -13,7 +13,7 @@ import pandas as pd
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="PROTEINS")
-    parser.add_argument("-n", "--num_runs", default=1)
+    parser.add_argument("-n", "--num_runs", default=1, type=int)
     parser.add_argument("--model", required=True)
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--num_encoding_layers", default=1, type=int)
