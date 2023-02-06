@@ -48,7 +48,7 @@ def main():
         raise ValueError(f"Model name {args.model} not recognized")
 
     if not args.debug:
-        wandb.init(project="control_gnns", config=TrainConfig)
+        wandb.init(project="control_gnns", config=TrainConfig.asdict())
         wandb.config.model = args.model
         wandb.config.hidden_dim = args.hidden_dim
         wandb.config.num_layers = args.num_layers
