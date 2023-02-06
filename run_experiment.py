@@ -85,8 +85,6 @@ def main():
             wandb.config.num_encoding_layers = args.num_encoding_layers
             wandb.config.num_decoding_layers = args.num_decoding_layers
             wandb.config.dropout_rate = args.dropout
-            if args.name:
-                wandb.run.name = args.name
             logger = run
         else:
             logger = BasicLogger()
