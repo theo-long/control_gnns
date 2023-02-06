@@ -81,7 +81,9 @@ def main():
             )
             wandb.config.model = args.model
             wandb.config.hidden_dim = args.hidden_dim
-            wandb.config.num_layers = args.num_layers
+            wandb.config.num_conv_layers = args.num_conv_layers
+            wandb.config.num_encoding_layers = args.num_encoding_layers
+            wandb.config.num_decoding_layers = args.num_decoding_layers
             wandb.config.dropout_rate = args.dropout
             if args.name:
                 wandb.run.name = args.name
