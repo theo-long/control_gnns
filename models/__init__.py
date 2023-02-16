@@ -1,1 +1,1 @@
-from .gcn_baseline import BasicGCN, LinearGCN, GraphMLP
+from .gcn_baseline import GCN, GraphMLP
