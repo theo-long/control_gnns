@@ -2,7 +2,7 @@ from torch import nn
 from torch_geometric.nn import GCNConv, global_add_pool
 
 
-class BasicMLP(nn.Module):
+class MLPBlock(nn.Module):
     """
     ReLU MLP with dropout, can be used as encoder and decoder
     """
@@ -44,7 +44,7 @@ class BasicMLP(nn.Module):
         return x
 
 
-class GCN(nn.Module):
+class BaselineGCN(nn.Module):
     """
     The original GCN architecture from Kipf and Welling, with additional node encoding/decoding MLP layers.
     """
@@ -65,7 +65,7 @@ class GCN(nn.Module):
         self.dropout_rate = dropout_rate
         self.linear = linear
 
-        self.encoder = BasicMLP(
+        self.encoder = MLPBlock(
             input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 
@@ -74,7 +74,7 @@ class GCN(nn.Module):
             conv_layers.append(GCNConv(hidden_dim, hidden_dim))
         self.conv_layers = nn.ModuleList(conv_layers)
 
-        self.decoder = BasicMLP(
+        self.decoder = MLPBlock(
             hidden_dim, output_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 
@@ -99,7 +99,7 @@ class GCN(nn.Module):
         return x
 
 
-class GraphMLP(nn.Module):
+class BaselineMLP(nn.Module):
     """
     An MLP Baseline which has no convolutional layers.
     It simply encodes the node features, applies graph sum pooling, then decodes the graph-level features.
@@ -119,11 +119,11 @@ class GraphMLP(nn.Module):
 
         self.dropout_rate = dropout_rate
 
-        self.encoder = BasicMLP(
+        self.encoder = MLPBlock(
             input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 
-        self.decoder = BasicMLP(
+        self.decoder = MLPBlock(
             hidden_dim, output_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 

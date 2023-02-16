@@ -1,6 +1,6 @@
 from training import train_eval, TrainConfig, BasicLogger
 from data import get_tu_dataset, generate_dataloaders
-from models import GCN, GraphMLP
+from models import BaselineGCN, BaselineMLP
 
 import argparse
 import wandb
@@ -45,7 +45,7 @@ def main():
     )
 
     if args.model.lower() == "gcn":
-        model = GCN(
+        model = BaselineGCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
@@ -55,7 +55,7 @@ def main():
             dropout_rate=args.dropout,
         )
     elif args.model.lower() == "linear_gcn":
-        model = GCN(
+        model = BaselineGCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
@@ -66,7 +66,7 @@ def main():
             linear=True,
         )
     elif args.model.lower() == "mlp":
-        model = GraphMLP(
+        model = BaselineMLP(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
