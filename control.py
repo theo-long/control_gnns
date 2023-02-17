@@ -4,8 +4,8 @@ import torch.nn as nn
 
 class NullControl(nn.Module):
     """
-    just returns 0
-    keeps GCNBlock code cleaner, by always having control 'active'
+    Just returns 0
+    Keeps GCNBlock code cleaner, by always having control 'active'
     """
 
     def __init__(self):

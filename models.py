@@ -8,19 +8,20 @@ from blocks import MLPBlock, GCNBlock, GCNBlockTimeInv
 class GCN(nn.Module):
     """
     The original GCN architecture from Kipf and Welling, with additional node encoding/decoding MLP layers.
+    + Optional arguments for linearity and time-invarince
     """
 
     def __init__(
         self,
-        input_dim,
-        output_dim,
-        hidden_dim,
-        num_conv_layers,
-        num_encoding_layers,
-        num_decoding_layers,
-        dropout_rate,
-        linear=False,
-        time_inv=False,
+        input_dim: int,
+        output_dim: int,
+        hidden_dim: int,
+        num_conv_layers: int,
+        num_encoding_layers: int,
+        num_decoding_layers: int,
+        dropout_rate: float,
+        linear: bool = False,
+        time_inv: bool = False,
     ):
         super().__init__()
 
@@ -28,10 +29,10 @@ class GCN(nn.Module):
             input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 
-        if not time_inv:
-            self.gcn_block = GCNBlock(hidden_dim, num_conv_layers, dropout_rate, linear)
-        else:
-            self.gcn_block = GCNBlockTimeInv(hidden_dim, num_conv_layers, dropout_rate, linear)
+        gcn_block_factory = GCNBlockTimeInv if time_inv else GCNBlock
+        self.gcn_block = gcn_block_factory(
+            hidden_dim, num_conv_layers, dropout_rate, linear
+        )
 
         self.decoder = MLPBlock(
             hidden_dim, output_dim, hidden_dim, num_decoding_layers, dropout_rate
@@ -60,14 +61,13 @@ class GraphMLP(nn.Module):
 
     def __init__(
         self,
-        input_dim,
-        output_dim,
-        hidden_dim,
-        num_encoding_layers,
-        num_decoding_layers,
-        dropout_rate,
+        input_dim: int,
+        output_dim: int,
+        hidden_dim: int,
+        num_encoding_layers: int,
+        num_decoding_layers: int,
+        dropout_rate: float,
     ):
-
         super().__init__()
 
         self.dropout_rate = dropout_rate

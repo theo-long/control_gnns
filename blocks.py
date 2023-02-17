@@ -1,4 +1,4 @@
-import torch 
+import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
@@ -7,16 +7,16 @@ from control import NullControl
 
 class MLPBlock(nn.Module):
     """
-    ReLU MLP with dropout, can be used as encoder and decoder
+    ReLU MLP with dropout, can be used as encoder or decoder
     """
 
     def __init__(
         self,
-        input_dim,
-        output_dim,
-        hidden_dim,
-        num_layers,
-        dropout_rate,
+        input_dim: int,
+        output_dim: int,
+        hidden_dim: int,
+        num_layers: int,
+        dropout_rate: float,
     ):
         super().__init__()
 
@@ -48,13 +48,18 @@ class MLPBlock(nn.Module):
 
 
 class GCNBlock(nn.Module):
+    """
+    A block of TIME VARYING GCN layers with option for control.
+    Control defaults to NullControl which returns 0 (so has no effect)
+    """
+
     def __init__(
         self,
-        feature_dim,
-        num_layers,
-        dropout_rate,
-        linear=False,
-        control_factory=NullControl,
+        feature_dim: int,
+        num_layers: int,
+        dropout_rate: float,
+        linear: bool = False,
+        control_factory: nn.Module = NullControl,
     ):
         super().__init__()
 
@@ -71,7 +76,6 @@ class GCNBlock(nn.Module):
         self.convs = nn.ModuleList(convs)
         self.controls = nn.ModuleList(controls)
 
-
     def forward(self, x, edge_index):
 
         for conv, control in zip(self.convs, self.controls):
@@ -86,6 +90,11 @@ class GCNBlock(nn.Module):
 
 
 class GCNBlockTimeInv(nn.Module):
+    """
+    A block of TIME INVARIANT GCN layers with option for control.
+    Control defaults to NullControl which returns 0 (so has no effect)
+    """
+
     def __init__(
         self,
         feature_dim,
