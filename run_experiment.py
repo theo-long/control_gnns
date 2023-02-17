@@ -61,7 +61,7 @@ def main():
             time_inv=args.time_inv,
         )
     elif args.model.lower() == "mlp":
-        model = BaselineMLP(
+        model = GraphMLP(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
