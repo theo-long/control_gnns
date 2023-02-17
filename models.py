@@ -44,7 +44,7 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        x = self.gcn_block(x, data.edge_index)
+        x = self.gcn_block(x, data.edge_index, data.batch)
 
         x = global_add_pool(x, data.batch)
 

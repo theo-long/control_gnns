@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from control import NullControl
+from control import NullControl, UnidirectionalAdjacencyControl
 
 
 class MLPBlock(nn.Module):
@@ -59,7 +59,7 @@ class GCNBlock(nn.Module):
         num_layers: int,
         dropout_rate: float,
         linear: bool = False,
-        control_factory: nn.Module = NullControl,
+        control_factory: nn.Module = UnidirectionalAdjacencyControl,
     ):
         super().__init__()
 
@@ -71,15 +71,15 @@ class GCNBlock(nn.Module):
 
         for _ in range(num_layers):
             convs.append(GCNConv(feature_dim, feature_dim))
-            controls.append(control_factory())
+            controls.append(control_factory(feature_dim))
 
         self.convs = nn.ModuleList(convs)
         self.controls = nn.ModuleList(controls)
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, batch_index):
 
         for conv, control in zip(self.convs, self.controls):
-            x = conv(x, edge_index) + control(x, edge_index)
+            x = conv(x, edge_index) + control(x, edge_index, batch_index)
 
             if not self.linear:
                 x = F.relu(x)
@@ -101,7 +101,7 @@ class GCNBlockTimeInv(nn.Module):
         depth,
         dropout_rate,
         linear=False,
-        control_factory=NullControl,
+        control_factory: nn.Module = UnidirectionalAdjacencyControl,
     ):
         super().__init__()
 
