@@ -12,6 +12,8 @@ class TrainConfig:
     batch_size: int
     epochs: int
     weight_decay: float = 0.0
+    beta1: float = 0.9
+    beta2: float = 0.999
 
 
 def train(
@@ -67,7 +69,12 @@ def train_eval(
 ):
     """Train the model for NUM_EPOCHS epochs."""
     # Instantiatie our optimiser
-    optimiser = optim.AdamW(model.parameters(), lr=training_config.lr)
+    optimiser = optim.AdamW(
+        model.parameters(),
+        lr=training_config.lr,
+        betas=(training_config.beta1, training_config.beta2),
+        weight_decay=training_config.weight_decay,
+    )
 
     # initial evaluation (before training)
     val_loss, val_metric = evaluate(val_loader, model, loss_function, metric_function)

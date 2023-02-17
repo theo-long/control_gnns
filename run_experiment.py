@@ -29,6 +29,8 @@ def main():
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--weight_decay", default=0.0, type=float)
+    parser.add_argument("--beta1", default=0.9, type=float)
+    parser.add_argument("--beta2", default=0.999, type=float)
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
@@ -41,6 +43,8 @@ def main():
         batch_size=args.batch_size,
         epochs=args.epochs,
         weight_decay=args.weight_decay,
+        beta1=args.beta1,
+        beta2=args.beta2,
     )
 
     dataset = get_tu_dataset(args.dataset)
