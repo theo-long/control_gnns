@@ -103,7 +103,7 @@ def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--name", required=True)
-    parser.add_argument("-e", "--epochs", default=20)
+    parser.add_argument("-e", "--epochs", default=20, type=int)
     parser.add_argument("-m", "--model", required=True)
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
