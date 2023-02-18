@@ -45,7 +45,7 @@ def train(
                 {
                     "epoch": epoch,
                     "batch": i,
-                    "train_loss": loss.data,
+                    "train_loss": loss.data / batch.y.shape[0],
                     "train_metric": metric.data,
                 }
             )
