@@ -49,7 +49,7 @@ def train(
                     "train_metric": metric.data,
                 }
             )
-    return loss.data, metric.data
+    return
 
 
 def evaluate(dataloader, model, device, loss_fct, metrics_fct):
@@ -113,7 +113,7 @@ def train_eval(
 
     best_val_loss = torch.inf
     for epoch in range(training_config.epochs):
-        train_loss, train_metric = train(
+        train(
             train_loader,
             model,
             device,
@@ -128,9 +128,7 @@ def train_eval(
             val_loader, model, device, loss_function, metric_function
         )
         epoch_stats = {
-            "train_loss": train_loss,
             "val_loss": val_loss,
-            "train_metric": train_metric,
             "val_metric": val_metric,
             "epoch": epoch,
         }
