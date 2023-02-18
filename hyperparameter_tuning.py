@@ -126,7 +126,7 @@ def main():
     args = parser.parse_args()
 
     sweep_configuration = SWEEPS_DICT[args.model]
-    sweep_id = wandb.sweep(sweep=sweep_configuration, project="control_gnns")
+    sweep_id = wandb.sweep(sweep=sweep_configuration.to_dict(), project="control_gnns")
     dataset = get_tu_dataset(args.dataset)
 
     if args.model == "mlp":
