@@ -38,10 +38,10 @@ class SweepConfiguration:
         }
 
 
-mlp_sweep = SweepConfiguration(
-    method="random",
-    name="mlp",
-    metric={"name": "val_loss", "goal": "minimize"},
+default_sweep = SweepConfiguration(
+    method="bayes",
+    name="default",
+    metric={"name": "best_val_loss", "goal": "minimize"},
     parameters={
         "lr": ContinuousParameter(0.1, 0.00001, distribution="log_uniform_values"),
         "weight_decay": ContinuousParameter(
@@ -52,24 +52,10 @@ mlp_sweep = SweepConfiguration(
     },
 )
 
-gcn_sweep = SweepConfiguration(
-    method="random",
-    name="gcn",
-    metric={"name": "val_loss", "goal": "minimize"},
-    parameters={
-        "lr": ContinuousParameter(0.1, 0.00001, distribution="log_uniform_values"),
-        "weight_decay": ContinuousParameter(
-            0.01, 1e-7, distribution="log_uniform_values"
-        ),
-        "beta1": ContinuousParameter(0.99, 0.5, distribution="log_uniform_values"),
-        "dropout_rate": ContinuousParameter(0.5, 0.0, distribution="uniform"),
-    },
-)
-
 
 SWEEPS_DICT = {
-    "mlp": mlp_sweep,
-    "gcn": gcn_sweep,
+    "mlp": default_sweep,
+    "gcn": default_sweep,
 }
 
 
