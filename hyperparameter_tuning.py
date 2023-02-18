@@ -61,7 +61,7 @@ gcn_sweep = SweepConfiguration(
         "weight_decay": ContinuousParameter(
             0.01, 1e-7, distribution="log_uniform_values"
         ),
-        "beta1": ContinuousParameter(0.5, 0.99, distribution="log_uniform_values"),
+        "beta1": ContinuousParameter(0.99, 0.5, distribution="log_uniform_values"),
         "dropout_rate": ContinuousParameter(0.5, 0.0, distribution="uniform"),
     },
 )
