@@ -114,21 +114,22 @@ def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-n", "--name", required=True)
+    parser.add_argument("-e", "--epochs", default=20)
+    parser.add_argument("-m", "--model", required=True)
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
     parser.add_argument("--num_decoding_layers", default=2, type=int)
     parser.add_argument("--num_conv_layers", default=2, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
-    parser.add_argument("-m", "--max_runs", default=10)
+    parser.add_argument("-n", "--num_runs", default=10)
     args = parser.parse_args()
 
-    sweep_configuration = SWEEPS_DICT[args.name]
+    sweep_configuration = SWEEPS_DICT[args.model]
     sweep_id = wandb.sweep(sweep=sweep_configuration, project="control_gnns")
     dataset = get_tu_dataset(args.dataset)
 
-    if args.name == "mlp":
+    if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
@@ -137,7 +138,7 @@ def main():
             num_encoding_layers=args.num_decoding_layers,
             dropout_rate=dropout_rate,  # passed during hyperparameter tuning
         )
-    elif args.name == "gcn":
+    elif args.model == "gcn":
         model_factory = lambda dropout_rate: GCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
@@ -150,13 +151,13 @@ def main():
             time_inv=args.time_inv,
         )
     else:
-        raise ValueError(f"Model name {args.name} not recognized")
+        raise ValueError(f"Model name {args.model} not recognized")
 
     training_function = training_run_factory(
-        epochs=50, model_factory=model_factory, dataset=dataset
+        epochs=args.epochs, model_factory=model_factory, dataset=dataset
     )
 
-    wandb.agent(sweep_id=sweep_id, function=training_function, count=args.max_runs)
+    wandb.agent(sweep_id=sweep_id, function=training_function, count=args.num_runs)
 
 
 if __name__ == "__main__":
