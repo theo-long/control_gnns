@@ -149,7 +149,7 @@ def train_eval(
         test_loader, model, device, loss_function, metric_function
     )
     final_stats = {
-        "best_val_loss": val_loss,
+        "best_val_loss": best_val_loss,
         "test_loss": test_loss,
         "test_metric": test_metric,
         "epoch": epoch,
