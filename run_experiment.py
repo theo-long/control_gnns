@@ -53,7 +53,7 @@ def main():
     )
 
     if args.model.lower() == "gcn":
-        model = GCN(
+        model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
@@ -65,7 +65,7 @@ def main():
             time_inv=args.time_inv,
         )
     elif args.model.lower() == "mlp":
-        model = GraphMLP(
+        model_factory = lambda: GraphMLP(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
@@ -94,6 +94,7 @@ def main():
             logger = BasicLogger()
 
         accuracy_function = Accuracy("multiclass", num_classes=dataset.num_classes)
+        model = model_factory()
         final_stats = train_eval(
             model,
             training_config,
