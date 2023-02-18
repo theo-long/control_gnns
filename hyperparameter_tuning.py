@@ -102,6 +102,7 @@ def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("-n", "--name", required=True)
     parser.add_argument("-e", "--epochs", default=20)
     parser.add_argument("-m", "--model", required=True)
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
@@ -111,10 +112,10 @@ def main():
     parser.add_argument("--num_decoding_layers", default=2, type=int)
     parser.add_argument("--num_conv_layers", default=2, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
-    parser.add_argument("-n", "--num_runs", default=10)
     args = parser.parse_args()
 
     sweep_configuration = SWEEPS_DICT[args.model]
+    sweep_configuration.name = args.name
     sweep_id = wandb.sweep(sweep=sweep_configuration.to_dict(), project="control_gnns")
     dataset = get_tu_dataset(args.dataset)
 
@@ -146,7 +147,7 @@ def main():
         epochs=args.epochs, model_factory=model_factory, dataset=dataset
     )
 
-    wandb.agent(sweep_id=sweep_id, function=training_function, count=args.num_runs)
+    wandb.agent(sweep_id=sweep_id, function=training_function)
 
 
 if __name__ == "__main__":
