@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import logging
 
+import torch
+
 logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
 
@@ -32,3 +34,10 @@ class PrintLogger(Logger):
         if isinstance(message, dict):
             message = ", ".join([f"{k}:{v}" for k, v in message.items()])
         print(message)
+
+
+def get_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    else:
+        return "cpu"

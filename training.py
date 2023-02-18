@@ -1,9 +1,12 @@
 from torch import nn
 from torch import optim
+import torch
 from torch.utils.data import DataLoader
 from dataclasses import dataclass
 from typing import Callable
-from utils import BasicLogger, Logger
+from utils import BasicLogger, Logger, get_device
+
+CHECKPOINT_PATH = "model.pt"
 
 
 @dataclass
@@ -17,11 +20,20 @@ class TrainConfig:
 
 
 def train(
-    dataloader, model, optimiser, epoch, loss_fct, metric_fct, log_interval, logger=None
+    dataloader,
+    model,
+    device,
+    optimiser,
+    epoch,
+    loss_fct,
+    metric_fct,
+    log_interval,
+    logger=None,
 ):
     """Train model for one epoch."""
     model.train()
     for i, batch in enumerate(dataloader):
+        batch.to(device)
         optimiser.zero_grad()
         y_hat = model(batch)
         loss = loss_fct(y_hat, batch.y, reduction="sum")
@@ -40,12 +52,13 @@ def train(
     return loss.data, metric.data
 
 
-def evaluate(dataloader, model, loss_fct, metrics_fct):
+def evaluate(dataloader, model, device, loss_fct, metrics_fct):
     """Evaluate model on dataset."""
     model.eval()
     metrics_eval = 0
     loss_eval = 0
     for batch in dataloader:
+        batch.to(device)
         y_hat = model(batch)
         metrics = metrics_fct(y_hat, batch.y)
         loss = loss_fct(y_hat, batch.y)
@@ -66,9 +79,14 @@ def train_eval(
     metric_function: Callable,
     log_interval: int = 1,
     logger: Logger = BasicLogger(),
+    restore_best=True,
 ):
-    """Train the model for NUM_EPOCHS epochs."""
-    # Instantiatie our optimiser
+    """Train the model and return final evaluation stats on test data."""
+    device = get_device()
+
+    model.to(device)
+
+    # Instantiate our optimiser
     optimiser = optim.AdamW(
         model.parameters(),
         lr=training_config.lr,
@@ -91,10 +109,12 @@ def train_eval(
 
     logger.log(epoch_stats)
 
+    best_val_loss = torch.inf
     for epoch in range(training_config.epochs):
         train_loss, train_metric = train(
             train_loader,
             model,
+            device,
             optimiser,
             epoch,
             loss_function,
@@ -103,7 +123,7 @@ def train_eval(
             logger,
         )
         val_loss, val_metric = evaluate(
-            val_loader, model, loss_function, metric_function
+            val_loader, model, device, loss_function, metric_function
         )
         epoch_stats = {
             "train_loss": train_loss,
@@ -113,12 +133,21 @@ def train_eval(
             "epoch": epoch,
         }
 
+        if epoch_stats["val_loss"] <= best_val_loss:
+            best_val_loss = epoch_stats["val_loss"]
+            if restore_best:
+                torch.save(model.state_dict(), CHECKPOINT_PATH)
+
         logger.log(epoch_stats)
+
+    if restore_best:
+        model.load_state_dict(torch.load(CHECKPOINT_PATH))
 
     test_loss, test_metric = evaluate(
         test_loader, model, loss_function, metric_function
     )
     final_stats = {
+        "best_val_loss": val_loss,
         "test_loss": test_loss,
         "test_metric": test_metric,
         "epoch": epoch,
