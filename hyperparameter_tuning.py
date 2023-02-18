@@ -45,7 +45,7 @@ default_sweep = SweepConfiguration(
     parameters={
         "lr": ContinuousParameter(0.1, 0.00001, distribution="log_uniform_values"),
         "weight_decay": ContinuousParameter(
-            0.01, 1e-7, distribution="log_uniform_values"
+            0.01, 1e-8, distribution="log_uniform_values"
         ),
         "beta1": ContinuousParameter(0.99, 0.5, distribution="log_uniform_values"),
         "dropout_rate": ContinuousParameter(0.5, 0.0, distribution="uniform"),
