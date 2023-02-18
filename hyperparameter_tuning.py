@@ -94,7 +94,6 @@ def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
             epochs=epochs,
             weight_decay=hyperparameters.pop("weight_decay"),
             beta1=hyperparameters.pop("beta1"),
-            beta2=hyperparameters.pop("beta2"),
         )
         accuracy_function = torchmetrics.Accuracy(
             "multiclass", num_classes=dataset.num_classes
