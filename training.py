@@ -95,9 +95,11 @@ def train_eval(
     )
 
     # initial evaluation (before training)
-    val_loss, val_metric = evaluate(val_loader, model, loss_function, metric_function)
+    val_loss, val_metric = evaluate(
+        val_loader, model, device, loss_function, metric_function
+    )
     train_loss, train_metric = evaluate(
-        train_loader, model, loss_function, metric_function
+        train_loader, model, device, loss_function, metric_function
     )
     epoch_stats = {
         "train_loss": train_loss,
@@ -144,7 +146,7 @@ def train_eval(
         model.load_state_dict(torch.load(CHECKPOINT_PATH))
 
     test_loss, test_metric = evaluate(
-        test_loader, model, loss_function, metric_function
+        test_loader, model, device, loss_function, metric_function
     )
     final_stats = {
         "best_val_loss": val_loss,
