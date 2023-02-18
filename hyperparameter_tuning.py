@@ -86,6 +86,7 @@ def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
     train_loader, val_loader, test_loader = generate_dataloaders(dataset, batch_size)
 
     def single_training_run():
+        run = wandb.init(project="control_gnns")
         hyperparameters = dict(wandb.config)
         training_config = TrainConfig(
             lr=hyperparameters.pop("lr"),
