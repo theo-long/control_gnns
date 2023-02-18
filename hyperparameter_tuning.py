@@ -120,6 +120,7 @@ def main():
     parser.add_argument("-m", "--model", required=True)
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
+    parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
     parser.add_argument("--num_decoding_layers", default=2, type=int)
     parser.add_argument("--num_conv_layers", default=2, type=int)
