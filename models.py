@@ -1,9 +1,12 @@
+from typing import Callable
+
 import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_add_pool
-from blocks import MLPBlock, GCNBlock, GCNBlockTimeInv
 
+from blocks import MLPBlock, GCNBlock, GCNBlockTimeInv
+from control import NullControl
 
 class GCN(nn.Module):
     """
@@ -19,6 +22,9 @@ class GCN(nn.Module):
         num_conv_layers: int,
         num_encoding_layers: int,
         num_decoding_layers: int,
+        control_factory : Callable,
+        control_stat : str,
+        control_k : int,
         dropout_rate: float,
         linear: bool = False,
         time_inv: bool = False,
@@ -31,7 +37,7 @@ class GCN(nn.Module):
 
         gcn_block_factory = GCNBlockTimeInv if time_inv else GCNBlock
         self.gcn_block = gcn_block_factory(
-            hidden_dim, num_conv_layers, dropout_rate, linear
+            hidden_dim, num_conv_layers, control_factory, control_stat, control_k, dropout_rate, linear
         )
 
         self.decoder = MLPBlock(
@@ -44,7 +50,7 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        x = self.gcn_block(x, data.edge_index, data.batch)
+        x = self.gcn_block(x, data.edge_index, data.node_rankings)
 
         x = global_add_pool(x, data.batch)
 

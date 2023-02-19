@@ -18,7 +18,7 @@ TEST_SPLIT = 0.2
 
 def add_node_rankings(data : Data):
     """
-    used as a pre_transform for TUDataset, adds node ranking fields to (graph) Data objects
+    used as a pre_transform for TUDataset, adds node ranking field to (graph) Data objects
     NOTE: any changes will not take effect without first deleting datasets/PROTEINS/processed
     """
 
@@ -52,8 +52,13 @@ def add_node_rankings(data : Data):
         return stat_rankings
 
     # adds new fields for node rankings
-    data.degree_rankings = node_rankings(data, degree)
-    data.between_cent_rankings = node_rankings(data, betweenness_centrality)
+    degree_rankings = node_rankings(data, degree)
+    between_cent_rankings = node_rankings(data, betweenness_centrality)
+
+    data.node_rankings = {
+            'degree' : degree_rankings,
+            'b_centrality' : between_cent_rankings
+            }
 
     return data
 

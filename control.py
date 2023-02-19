@@ -14,62 +14,73 @@ class NullControl(nn.Module):
         super().__init__()
         self.parameter = nn.Parameter(torch.empty(0))
 
-    def forward(self, x, edge_index, batch_index):
+    def forward(self, x, edge_index, node_rankings):
         return 0
 
 
-class UnidirectionalAdjacencyControl(nn.Module):
+class AdjacencyControl(nn.Module):
     """
     Experiment 1 in our plan
-    Excited node interacts with other nodes via exisiting edges (unidirectionally)
+    Excited node interacts only via exisiting edges (unidirectionally)
     """
 
-    def __init__(self, feature_dim):
+    def __init__(self, feature_dim, node_stat, k):
         super().__init__()
+
+        self.k = k
+        self.node_stat = node_stat
 
         self.linear = nn.Linear(feature_dim, feature_dim)
 
-        self.k = 1
-
-    def _get_B(self, edge_index, batch_index):
-
-        A = torch_geometric.utils.to_dense_adj(edge_index)[0]
-
-        D = torch.sum(A, dim=1)
-
-        _, sample_sizes = torch.unique_consecutive(batch_index, return_counts=True)
-
-        batch_topk_nodes = []
-
-        position = 0
-
-        # iterate over every sample in batch and find topk_nodes
-        for sample_size in sample_sizes:
-
-            D_sample = D[position : position + sample_size]
-
-            # need to handle multiplicity
-            _, sample_topk_nodes = torch.topk(D, self.k)
-
-            batch_topk_nodes.append(sample_topk_nodes)
-
-            position += sample_size
-
-        batch_topk_nodes = torch.cat(batch_topk_nodes)
-
-        mask_vec = torch.zeros(A.shape[-1])
-        mask_vec[batch_topk_nodes] = 1
-
-        B = A * mask_vec
-
-        return B
-
-    def forward(self, x, edge_index, batch_index):
+    def forward(self, x, edge_index, node_rankings):
 
         x = self.linear(x)
 
-        B = self._get_B(edge_index, batch_index)
+        # get (sparse) adjacency
+        A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
+
+        # find nodes with ranking better than k (0 is best)
+        node_mask = node_rankings[self.node_stat] <= self.k
+
+        # apply mask row-wise
+        B = A * node_mask
 
         x = B @ x
 
         return x
+
+
+class DenseControl(nn.Module):
+    """
+    Experiment 2 in our plan
+    Excited node interacts with all other nodes (unidirectionally)
+    """
+
+    def __init__(self, feature_dim, node_stat, k):
+        super().__init__()
+
+        self.k = k
+        self.node_stat = node_stat
+
+        self.linear = nn.Linear(feature_dim, feature_dim)
+
+    def forward(self, x, edge_index, node_rankings):
+
+        x = self.linear(x)
+
+        # find nodes with ranking better than k (0 is best)
+        row_active = (node_rankings[self.node_stat] <= self.k).to(torch.float).view(1, -1)
+
+        # tile row into square matrix
+        B = torch.tile(row_active, (x.shape[0], 1))
+
+        x = B @ x
+
+        return x
+
+
+CONTROL_DICT = {
+        'null' : NullControl,
+        'adj' : AdjacencyControl,
+        'dense' : DenseControl
+        }

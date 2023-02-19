@@ -1,8 +1,9 @@
+from typing import Callable
+
 import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from control import NullControl, UnidirectionalAdjacencyControl
 
 
 class MLPBlock(nn.Module):
@@ -57,9 +58,11 @@ class GCNBlock(nn.Module):
         self,
         feature_dim: int,
         num_layers: int,
+        control_factory: Callable,
+        control_stat: str,
+        control_k : int,
         dropout_rate: float,
         linear: bool = False,
-        control_factory: nn.Module = UnidirectionalAdjacencyControl,
     ):
         super().__init__()
 
@@ -71,15 +74,15 @@ class GCNBlock(nn.Module):
 
         for _ in range(num_layers):
             convs.append(GCNConv(feature_dim, feature_dim))
-            controls.append(control_factory(feature_dim))
+            controls.append(control_factory(feature_dim, control_stat, control_k))
 
         self.convs = nn.ModuleList(convs)
         self.controls = nn.ModuleList(controls)
 
-    def forward(self, x, edge_index, batch_index):
+    def forward(self, x, edge_index, node_rankings):
 
         for conv, control in zip(self.convs, self.controls):
-            x = conv(x, edge_index) + control(x, edge_index, batch_index)
+            x = conv(x, edge_index) + control(x, edge_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)
@@ -97,11 +100,13 @@ class GCNBlockTimeInv(nn.Module):
 
     def __init__(
         self,
-        feature_dim,
-        depth,
-        dropout_rate,
+        feature_dim : int,
+        depth : int,
+        control_factory: Callable,
+        control_stat: str,
+        control_k : int,
+        dropout_rate : float,
         linear=False,
-        control_factory: nn.Module = UnidirectionalAdjacencyControl,
     ):
         super().__init__()
 
@@ -110,12 +115,12 @@ class GCNBlockTimeInv(nn.Module):
         self.linear = linear
 
         self.conv = GCNConv(feature_dim, feature_dim)
-        self.control = control_factory()
+        self.control = control_factory(feature_dim, control_stat, control_k)
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, node_rankings):
 
         for _ in range(self.depth):
-            x = self.conv(x, edge_index) + self.control(x, edge_index)
+            x = self.conv(x, edge_index) + self.control(x, edge_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)
