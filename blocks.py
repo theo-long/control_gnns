@@ -61,6 +61,7 @@ class GCNBlock(nn.Module):
         control_factory: Callable,
         control_stat: str,
         control_k: int,
+        control_normalise: bool,
         dropout_rate: float,
         linear: bool = False,
     ):
@@ -74,15 +75,15 @@ class GCNBlock(nn.Module):
 
         for _ in range(num_layers):
             convs.append(GCNConv(feature_dim, feature_dim))
-            controls.append(control_factory(feature_dim, control_stat, control_k))
+            controls.append(control_factory(feature_dim, control_stat, control_k, control_normalise))
 
         self.convs = nn.ModuleList(convs)
         self.controls = nn.ModuleList(controls)
 
-    def forward(self, x, edge_index, node_rankings):
+    def forward(self, x, edge_index, batch_index, node_rankings):
 
         for conv, control in zip(self.convs, self.controls):
-            x = conv(x, edge_index) + control(x, edge_index, node_rankings)
+            x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)
@@ -105,6 +106,7 @@ class GCNBlockTimeInv(nn.Module):
         control_factory: Callable,
         control_stat: str,
         control_k: int,
+        control_normalise, bool,
         dropout_rate: float,
         linear=False,
     ):
@@ -115,12 +117,12 @@ class GCNBlockTimeInv(nn.Module):
         self.linear = linear
 
         self.conv = GCNConv(feature_dim, feature_dim)
-        self.control = control_factory(feature_dim, control_stat, control_k)
+        self.control = control_factory(feature_dim, control_stat, control_k, control_normalise)
 
-    def forward(self, x, edge_index, node_rankings):
+    def forward(self, x, edge_index, batch_index, node_rankings):
 
         for _ in range(self.depth):
-            x = self.conv(x, edge_index) + self.control(x, edge_index, node_rankings)
+            x = self.conv(x, edge_index) + self.control(x, edge_index, batch_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)

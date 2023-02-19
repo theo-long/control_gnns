@@ -25,6 +25,7 @@ def main():
     parser.add_argument("--control", default="null", type=str)
     parser.add_argument("--control_stat", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
+    parser.add_argument("--control_normalise", action="store_true")
 
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
@@ -64,6 +65,7 @@ def main():
             control_factory=CONTROL_DICT[args.control],
             control_stat=args.control_stat,
             control_k=args.control_k,
+            control_normalise=args.control_normalise,
             dropout_rate=args.dropout,
             linear=args.linear,
             time_inv=args.time_inv,

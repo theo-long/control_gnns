@@ -26,6 +26,7 @@ class GCN(nn.Module):
         control_factory: Callable,
         control_stat: str,
         control_k: int,
+        control_normalise: bool,
         dropout_rate: float,
         linear: bool = False,
         time_inv: bool = False,
@@ -43,6 +44,7 @@ class GCN(nn.Module):
             control_factory,
             control_stat,
             control_k,
+            control_normalise,
             dropout_rate,
             linear,
         )
@@ -57,7 +59,7 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        x = self.gcn_block(x, data.edge_index, data.node_rankings)
+        x = self.gcn_block(x, data.edge_index, data.batch, data.node_rankings)
 
         x = global_add_pool(x, data.batch)
 

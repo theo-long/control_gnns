@@ -14,7 +14,7 @@ class NullControl(nn.Module):
         super().__init__()
         self.parameter = nn.Parameter(torch.empty(0))
 
-    def forward(self, x, edge_index, node_rankings):
+    def forward(self, x, edge_index, batch_index, node_rankings):
         return 0
 
 
@@ -23,27 +23,47 @@ class Control(nn.Module):
     Base class for control, override _get_B for different strategies
     """
 
-    def __init__(self, feature_dim, node_stat, k):
+    def __init__(self, feature_dim, node_stat, k, normalise):
         super().__init__()
 
-        self.k = k
         self.node_stat = node_stat
+        self.k = k
+        self.normalise = normalise
         self.linear = nn.Linear(feature_dim, feature_dim)
 
-    def _get_B(self, node_rankings):
+    def _get_B(self):
         raise NotImplementedError
 
-    def forward(self, x, edge_index, node_rankings):
+    def _normalise_B(self, B):
+
+        # get degrees of B
+        if not B.is_sparse:
+            D_B = torch.sum(B, dim=1)
+        else:
+            D_B = torch.sparse.sum(B, dim=1).to_dense()
+
+        # get 1/degrees
+        D_B_inv = D_B ** -1
+
+        # mutliply rows by 1/degrees, convert nans to zero
+        B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
+
+        return B
+
+    def forward(self, x, edge_index, batch_index, node_rankings):
 
         x = self.linear(x)
 
-        # TODO handle multiple values? or at least track number of active nodes?
+        with torch.no_grad():
 
-        # find nodes with ranking better than k (0 is best)
-        active_nodes = node_rankings[self.node_stat] <= self.k
+            # find nodes with ranking better than k (0 is best)
+            active_nodes = (node_rankings[self.node_stat] <= self.k)
 
-        # gets B matrix as per child class strategy
-        B = self._get_B(edge_index, active_nodes)
+            # gets B matrix as per child class strategy
+            B = self._get_B(edge_index, batch_index, active_nodes)
+
+            if self.normalise:
+                B = self._normalise_B(B)
 
         x = B @ x
 
@@ -51,7 +71,6 @@ class Control(nn.Module):
 
 
 class AdjacencyControl(Control):
-
     """
     Experiment 1 in our plan
     Excited node interacts only via exisiting edges (unidirectionally)
@@ -60,9 +79,7 @@ class AdjacencyControl(Control):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _get_B(self, edge_index, active_nodes):
-
-        # TODO normalisation?
+    def _get_B(self, edge_index, batch_index, active_nodes):
 
         # get (sparse) adjacency
         A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
@@ -76,21 +93,29 @@ class AdjacencyControl(Control):
 class DenseControl(Control):
     """
     Experiment 2 in our plan
-    Excited node interacts with all other nodes (unidirectionally)
+    Excited node interacts with all other nodes (in same graph) (unidirectionally)
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _get_B(self, edge_index, active_nodes):
+    def _get_B(self, edge_index, batch_index, active_nodes):
 
-        # TODO needs normalising
-        # TODO not currently sparse
+        # TODO not currently sparse (no sparse tile?)
+        # tile active_nodes into square matrix
+        B = torch.tile(active_nodes, (active_nodes.shape[-1], 1))
 
-        active_nodes = active_nodes.to(torch.float).view(1, -1)
+        # TODO this is slow (has for loop) maybe possible without?
+        # generate block diagonal mask (prevents edges between graphs in batch)
+        graph_sizes = torch.unique_consecutive(batch_index, return_counts=True)[1]
+        tensor_list = [torch.ones((graph_sizes[i], graph_sizes[i])) for i in range(graph_sizes.shape[0])]
+        mask = torch.block_diag(*tensor_list)
 
-        # tile row into square matrix
-        B = torch.tile(active_nodes, (len(active_nodes), 1))
+        # apply mask element wise
+        B = B * mask
+
+        # zero out active node self adjacency
+        torch.diagonal(B).zero_()
 
         return B
 

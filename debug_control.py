@@ -1,3 +1,6 @@
+import random
+import numpy as np
+
 from training import train_eval, TrainConfig, BasicLogger
 from data import (
     get_tu_dataset,
@@ -28,6 +31,7 @@ def main():
     parser.add_argument("--control", default="null", type=str)
     parser.add_argument("--control_stat", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
+    parser.add_argument("--control_normalise", action="store_true")
 
     parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
@@ -37,11 +41,13 @@ def main():
 
     args = parser.parse_args()
 
+    random.seed(0)
+    np.random.seed(0)
     torch.random.manual_seed(0)
 
     dataset = [add_node_rankings(random_toy_graph()) for _ in range(10)]
 
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=3, shuffle=True)
 
     model = GCN(
         input_dim=dataset[0].x.shape[1],
@@ -53,6 +59,7 @@ def main():
         control_factory=CONTROL_DICT[args.control],
         control_stat=args.control_stat,
         control_k=args.control_k,
+        control_normalise=args.control_normalise,
         dropout_rate=args.dropout,
         linear=args.linear,
         time_inv=args.time_inv,
