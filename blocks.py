@@ -59,10 +59,6 @@ class GCNBlock(nn.Module):
         feature_dim: int,
         num_layers: int,
         control_factory: Callable,
-        control_stat: str,
-        control_k: int,
-        control_normalise: bool,
-        control_alpha: float,
         dropout_rate: float,
         linear: bool = False,
     ):
@@ -70,14 +66,13 @@ class GCNBlock(nn.Module):
 
         self.dropout_rate = dropout_rate
         self.linear = linear
-        self.control_alpha = control_alpha
 
         convs = []
         controls = []
 
         for _ in range(num_layers):
             convs.append(GCNConv(feature_dim, feature_dim))
-            controls.append(control_factory(feature_dim, control_stat, control_k, control_normalise))
+            controls.append(control_factory())
 
         self.convs = nn.ModuleList(convs)
         self.controls = nn.ModuleList(controls)
@@ -85,7 +80,7 @@ class GCNBlock(nn.Module):
     def forward(self, x, edge_index, batch_index, node_rankings):
 
         for conv, control in zip(self.convs, self.controls):
-            x = conv(x, edge_index) + self.control_alpha * control(x, edge_index, batch_index, node_rankings)
+            x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)
@@ -106,10 +101,6 @@ class GCNBlockTimeInv(nn.Module):
         feature_dim: int,
         depth: int,
         control_factory: Callable,
-        control_stat: str,
-        control_k: int,
-        control_normalise: bool,
-        control_alpha: float,
         dropout_rate: float,
         linear: bool=False,
     ):
@@ -118,15 +109,14 @@ class GCNBlockTimeInv(nn.Module):
         self.depth = depth
         self.dropout_rate = dropout_rate
         self.linear = linear
-        self.control_alpha = control_alpha
 
         self.conv = GCNConv(feature_dim, feature_dim)
-        self.control = control_factory(feature_dim, control_stat, control_k, control_normalise)
+        self.control = control_factory()
 
     def forward(self, x, edge_index, batch_index, node_rankings):
 
         for _ in range(self.depth):
-            x = self.conv(x, edge_index) + self.control_alpha * self.control(x, edge_index, batch_index, node_rankings)
+            x = self.conv(x, edge_index) + self.control(x, edge_index, batch_index, node_rankings)
 
             if not self.linear:
                 x = F.relu(x)

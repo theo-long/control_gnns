@@ -23,13 +23,15 @@ class Control(nn.Module):
     Base class for control, override _get_B for different strategies
     """
 
-    def __init__(self, feature_dim, node_stat, k, normalise):
+    def __init__(self, feature_dim, node_stat, k, normalise, alpha):
         super().__init__()
 
         self.node_stat = node_stat
         self.k = k
         self.normalise = normalise
         self.linear = nn.Linear(feature_dim, feature_dim)
+        # currently learnable, does this actually help?
+        self.alpha = nn.Parameter(torch.tensor(alpha))
 
     def _get_B(self):
         raise NotImplementedError
@@ -62,7 +64,7 @@ class Control(nn.Module):
             if self.normalise:
                 B = self._normalise_B(B)
 
-        x = B @ x
+        x = self.alpha * (B @ x)
 
         return x
 

@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--linear", action="store_true")
     parser.add_argument("--time_inv", action="store_true")
 
-    parser.add_argument("--control", default="null", type=str)
+    parser.add_argument("--control_type", default="null", type=str)
     parser.add_argument("--control_stat", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
     parser.add_argument("--control_normalise", action="store_true")
@@ -50,6 +50,13 @@ def main():
 
     dataloader = DataLoader(dataset, batch_size=3, shuffle=True)
 
+    control_factory = lambda : CONTROL_DICT[args.control_type](
+            feature_dim=args.hidden_dim,
+            node_stat=args.control_stat,
+            k=args.control_k,
+            normalise=args.control_normalise,
+            alpha=args.control_alpha)
+
     model = GCN(
         input_dim=dataset[0].x.shape[1],
         output_dim=2,
@@ -57,11 +64,7 @@ def main():
         num_conv_layers=args.num_conv_layers,
         num_decoding_layers=args.num_decoding_layers,
         num_encoding_layers=args.num_encoding_layers,
-        control_factory=CONTROL_DICT[args.control],
-        control_stat=args.control_stat,
-        control_k=args.control_k,
-        control_normalise=args.control_normalise,
-        control_alpha=args.control_alpha,
+        control_factory=control_factory,
         dropout_rate=args.dropout,
         linear=args.linear,
         time_inv=args.time_inv,
