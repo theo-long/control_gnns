@@ -43,7 +43,7 @@ class Control(nn.Module):
         D_B = torch.sparse.sum(B, dim=1).to_dense()
 
         # get 1/degrees
-        D_B_inv = D_B ** -1
+        D_B_inv = D_B**-1
 
         # mutliply rows by 1/degrees, convert nans to zero
         B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
@@ -57,7 +57,7 @@ class Control(nn.Module):
         with torch.no_grad():
 
             # find nodes with ranking better than k (0 is best)
-            active_nodes = (node_rankings[self.node_stat] <= self.k)
+            active_nodes = node_rankings[self.node_stat] <= self.k
 
             # gets B matrix as per child class strategy
             B = self._get_B(edge_index, batch_index, active_nodes)
@@ -109,7 +109,10 @@ class DenseControl(Control):
         # TODO this is slow (has for loop) maybe possible without?
         # generate block diagonal mask (prevents edges between graphs in batch)
         graph_sizes = torch.unique_consecutive(batch_index, return_counts=True)[1]
-        tensor_list = [torch.ones((graph_sizes[i], graph_sizes[i])) for i in range(graph_sizes.shape[0])]
+        tensor_list = [
+            torch.ones((graph_sizes[i], graph_sizes[i]))
+            for i in range(graph_sizes.shape[0])
+        ]
         mask = torch.block_diag(*tensor_list)
 
         # apply mask element wise

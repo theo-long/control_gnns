@@ -50,12 +50,13 @@ def main():
 
     dataloader = DataLoader(dataset, batch_size=3, shuffle=True)
 
-    control_factory = lambda : CONTROL_DICT[args.control_type](
-            feature_dim=args.hidden_dim,
-            node_stat=args.control_stat,
-            k=args.control_k,
-            normalise=args.control_normalise,
-            alpha=args.control_alpha)
+    control_factory = lambda: CONTROL_DICT[args.control_type](
+        feature_dim=args.hidden_dim,
+        node_stat=args.control_stat,
+        k=args.control_k,
+        normalise=args.control_normalise,
+        alpha=args.control_alpha,
+    )
 
     model = GCN(
         input_dim=dataset[0].x.shape[1],

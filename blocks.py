@@ -75,7 +75,9 @@ class GCNBlock(nn.Module):
             self.control = nn.ModuleList([control_factory()])
 
         else:
-            self.conv = nn.ModuleList([GCNConv(feature_dim, feature_dim) for _ in range(depth)])
+            self.conv = nn.ModuleList(
+                [GCNConv(feature_dim, feature_dim) for _ in range(depth)]
+            )
             self.control = nn.ModuleList([control_factory() for _ in range(depth)])
 
     def forward(self, x, edge_index, batch_index, node_rankings):
