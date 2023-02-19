@@ -60,7 +60,7 @@ class GCNBlock(nn.Module):
         num_layers: int,
         control_factory: Callable,
         control_stat: str,
-        control_k : int,
+        control_k: int,
         dropout_rate: float,
         linear: bool = False,
     ):
@@ -100,12 +100,12 @@ class GCNBlockTimeInv(nn.Module):
 
     def __init__(
         self,
-        feature_dim : int,
-        depth : int,
+        feature_dim: int,
+        depth: int,
         control_factory: Callable,
         control_stat: str,
-        control_k : int,
-        dropout_rate : float,
+        control_k: int,
+        dropout_rate: float,
         linear=False,
     ):
         super().__init__()

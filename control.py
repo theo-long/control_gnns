@@ -69,7 +69,9 @@ class DenseControl(nn.Module):
         x = self.linear(x)
 
         # find nodes with ranking better than k (0 is best)
-        row_active = (node_rankings[self.node_stat] <= self.k).to(torch.float).view(1, -1)
+        row_active = (
+            (node_rankings[self.node_stat] <= self.k).to(torch.float).view(1, -1)
+        )
 
         # tile row into square matrix
         B = torch.tile(row_active, (x.shape[0], 1))
@@ -79,8 +81,4 @@ class DenseControl(nn.Module):
         return x
 
 
-CONTROL_DICT = {
-        'null' : NullControl,
-        'adj' : AdjacencyControl,
-        'dense' : DenseControl
-        }
+CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}

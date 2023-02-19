@@ -8,6 +8,7 @@ from torch_geometric.nn import global_add_pool
 from blocks import MLPBlock, GCNBlock, GCNBlockTimeInv
 from control import NullControl
 
+
 class GCN(nn.Module):
     """
     The original GCN architecture from Kipf and Welling, with additional node encoding/decoding MLP layers.
@@ -22,9 +23,9 @@ class GCN(nn.Module):
         num_conv_layers: int,
         num_encoding_layers: int,
         num_decoding_layers: int,
-        control_factory : Callable,
-        control_stat : str,
-        control_k : int,
+        control_factory: Callable,
+        control_stat: str,
+        control_k: int,
         dropout_rate: float,
         linear: bool = False,
         time_inv: bool = False,
@@ -37,7 +38,13 @@ class GCN(nn.Module):
 
         gcn_block_factory = GCNBlockTimeInv if time_inv else GCNBlock
         self.gcn_block = gcn_block_factory(
-            hidden_dim, num_conv_layers, control_factory, control_stat, control_k, dropout_rate, linear
+            hidden_dim,
+            num_conv_layers,
+            control_factory,
+            control_stat,
+            control_k,
+            dropout_rate,
+            linear,
         )
 
         self.decoder = MLPBlock(

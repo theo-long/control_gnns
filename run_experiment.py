@@ -22,8 +22,8 @@ def main():
     parser.add_argument("--linear", action="store_true")
     parser.add_argument("--time_inv", action="store_true")
 
-    parser.add_argument("--control", default='null', type=str)
-    parser.add_argument("--control_stat", default='degree', type=str)
+    parser.add_argument("--control", default="null", type=str)
+    parser.add_argument("--control_stat", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
 
     parser.add_argument("--hidden_dim", default=64, type=int)
