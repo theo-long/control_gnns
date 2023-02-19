@@ -27,6 +27,7 @@ class GCN(nn.Module):
         control_stat: str,
         control_k: int,
         control_normalise: bool,
+        control_alpha: float,
         dropout_rate: float,
         linear: bool = False,
         time_inv: bool = False,
@@ -45,6 +46,7 @@ class GCN(nn.Module):
             control_stat,
             control_k,
             control_normalise,
+            control_alpha,
             dropout_rate,
             linear,
         )
