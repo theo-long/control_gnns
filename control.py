@@ -18,67 +18,81 @@ class NullControl(nn.Module):
         return 0
 
 
-class AdjacencyControl(nn.Module):
+class Control(nn.Module):
+    """
+    Base class for control, override _get_B for different strategies
+    """
+
+    def __init__(self, feature_dim, node_stat, k):
+        super().__init__()
+
+        self.k = k
+        self.node_stat = node_stat
+        self.linear = nn.Linear(feature_dim, feature_dim)
+
+    def _get_B(self, node_rankings):
+        raise NotImplementedError
+    
+    def forward(self, x, edge_index, node_rankings):
+
+        x = self.linear(x)
+
+        # TODO handle multiple values? or at least track number of active nodes?
+
+        # find nodes with ranking better than k (0 is best)
+        active_nodes = node_rankings[self.node_stat] <= self.k
+
+        # gets B matrix as per child class strategy
+        B = self._get_B(edge_index, active_nodes)
+
+        x = B @ x
+
+        return x
+
+
+class AdjacencyControl(Control):
+
     """
     Experiment 1 in our plan
     Excited node interacts only via exisiting edges (unidirectionally)
     """
 
-    def __init__(self, feature_dim, node_stat, k):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.k = k
-        self.node_stat = node_stat
+    def _get_B(self, edge_index, active_nodes):
 
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def forward(self, x, edge_index, node_rankings):
-
-        x = self.linear(x)
+        # TODO normalisation?
 
         # get (sparse) adjacency
         A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
 
-        # find nodes with ranking better than k (0 is best)
-        node_mask = node_rankings[self.node_stat] <= self.k
-
         # apply mask row-wise
-        B = A * node_mask
+        B = A * active_nodes
 
-        x = B @ x
-
-        return x
+        return B
 
 
-class DenseControl(nn.Module):
+class DenseControl(Control):
     """
     Experiment 2 in our plan
     Excited node interacts with all other nodes (unidirectionally)
     """
 
-    def __init__(self, feature_dim, node_stat, k):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        self.k = k
-        self.node_stat = node_stat
+    def _get_B(self, edge_index, active_nodes):
 
-        self.linear = nn.Linear(feature_dim, feature_dim)
+        # TODO needs normalising
+        # TODO not currently sparse
 
-    def forward(self, x, edge_index, node_rankings):
-
-        x = self.linear(x)
-
-        # find nodes with ranking better than k (0 is best)
-        row_active = (
-            (node_rankings[self.node_stat] <= self.k).to(torch.float).view(1, -1)
-        )
+        active_nodes = active_nodes.to(torch.float).view(1, -1)
 
         # tile row into square matrix
-        B = torch.tile(row_active, (x.shape[0], 1))
+        B = torch.tile(active_nodes, (len(active_nodes), 1))
 
-        x = B @ x
-
-        return x
+        return B
 
 
 CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}
