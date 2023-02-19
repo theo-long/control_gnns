@@ -87,9 +87,11 @@ def generate_dataloaders(dataset: TUDataset, batch_size):
     return tuple(loaders)
 
 
-def random_toy_graph(num_nodes=4, feature_dim=4):
+def random_toy_graph(num_nodes=8, feature_dim=4):
 
-    max_edges = torch.randint(high=num_nodes**2, size=(1,))
+    # at most half possible edges exist
+    max_edges = torch.randint(high=num_nodes**2, size=(1,)) // 4
+
     temp_graph = torch_geometric.utils.from_networkx(
         nx.gnm_random_graph(num_nodes, max_edges)
     )
