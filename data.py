@@ -46,8 +46,8 @@ def add_node_rankings(data: Data):
         _, rankings = torch.unique_consecutive(sorted_stat, return_inverse=True)
 
         # creates tensor of ranking data
-        stat_rankings = torch.zeros(data.x.shape[0], dtype=torch.int16)
-        stat_rankings[indices] = rankings.to(torch.int16)
+        stat_rankings = torch.zeros(data.x.shape[0], dtype=torch.int32)
+        stat_rankings[indices] = rankings.to(torch.int32)
 
         return stat_rankings
 
@@ -85,3 +85,18 @@ def generate_dataloaders(dataset: TUDataset, batch_size):
         )
         index = upper_index
     return tuple(loaders)
+
+
+def random_toy_graph(num_nodes=4, feature_dim=4):
+
+    max_edges = torch.randint(high=num_nodes**2, size=(1,))
+    temp_graph = torch_geometric.utils.from_networkx(
+        nx.gnm_random_graph(num_nodes, max_edges)
+    )
+
+    x = torch.rand((num_nodes, feature_dim))
+    y = torch.randint(2, (num_nodes,))
+
+    graph = Data(x=x, y=y, edge_index=temp_graph.edge_index)
+
+    return graph

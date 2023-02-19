@@ -32,7 +32,7 @@ class Control(nn.Module):
 
     def _get_B(self, node_rankings):
         raise NotImplementedError
-    
+
     def forward(self, x, edge_index, node_rankings):
 
         x = self.linear(x)
