@@ -31,7 +31,7 @@ def main():
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
     parser.add_argument("--num_decoding_layers", default=2, type=int)
-    parser.add_argument("--num_conv_layers", default=2, type=int)
+    parser.add_argument("--conv_depth", default=2, type=int)
     parser.add_argument("--dropout", default=0.0, type=float)
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--epochs", default=10, type=int)
@@ -68,7 +68,7 @@ def main():
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
-            num_conv_layers=args.num_conv_layers,
+            conv_depth=args.conv_depth,
             num_decoding_layers=args.num_decoding_layers,
             num_encoding_layers=args.num_encoding_layers,
             control_factory=control_factory,

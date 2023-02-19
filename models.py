@@ -5,7 +5,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_add_pool
 
-from blocks import MLPBlock, GCNBlock, GCNBlockTimeInv
+from blocks import MLPBlock, GCNBlock
 from control import NullControl
 
 
@@ -20,13 +20,13 @@ class GCN(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dim: int,
-        num_conv_layers: int,
+        conv_depth: int,
         num_encoding_layers: int,
         num_decoding_layers: int,
         control_factory: Callable,
         dropout_rate: float,
-        linear: bool = False,
-        time_inv: bool = False,
+        linear: bool,
+        time_inv: bool,
     ):
         super().__init__()
 
@@ -34,13 +34,13 @@ class GCN(nn.Module):
             input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
         )
 
-        gcn_block_factory = GCNBlockTimeInv if time_inv else GCNBlock
-        self.gcn_block = gcn_block_factory(
+        self.gcn_block = GCNBlock(
             hidden_dim,
-            num_conv_layers,
+            conv_depth,
             control_factory,
             dropout_rate,
             linear,
+            time_inv,
         )
 
         self.decoder = MLPBlock(
