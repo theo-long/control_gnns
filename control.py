@@ -37,10 +37,7 @@ class Control(nn.Module):
     def _normalise_B(self, B):
 
         # get degrees of B
-        if not B.is_sparse:
-            D_B = torch.sum(B, dim=1)
-        else:
-            D_B = torch.sparse.sum(B, dim=1).to_dense()
+        D_B = torch.sparse.sum(B, dim=1).to_dense()
 
         # get 1/degrees
         D_B_inv = D_B ** -1
@@ -101,7 +98,8 @@ class DenseControl(Control):
 
     def _get_B(self, edge_index, batch_index, active_nodes):
 
-        # TODO not currently sparse (no sparse tile?)
+        # TODO process not fully sparse (some ops couldn't do sparse)
+
         # tile active_nodes into square matrix
         B = torch.tile(active_nodes, (active_nodes.shape[-1], 1))
 
@@ -117,7 +115,7 @@ class DenseControl(Control):
         # zero out active node self adjacency
         torch.diagonal(B).zero_()
 
-        return B
+        return B.to_sparse_coo()
 
 
 CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}
