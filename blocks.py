@@ -60,8 +60,8 @@ class GCNBlock(nn.Module):
         depth: int,
         control_factory: Callable,
         dropout_rate: float,
-        linear: bool = False,
-        time_inv: bool = False,
+        linear: bool,
+        time_inv: bool,
     ):
         super().__init__()
 

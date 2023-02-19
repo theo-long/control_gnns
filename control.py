@@ -30,6 +30,7 @@ class Control(nn.Module):
         self.k = k
         self.normalise = normalise
         self.linear = nn.Linear(feature_dim, feature_dim)
+
         # currently learnable, does this actually help?
         self.alpha = nn.Parameter(torch.tensor(alpha))
 
