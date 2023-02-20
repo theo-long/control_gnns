@@ -48,7 +48,7 @@ def main():
 
     dataset = [add_node_rankings(random_toy_graph()) for _ in range(10)]
 
-    dataloader = DataLoader(dataset, batch_size=3, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
 
     control_factory = lambda: CONTROL_DICT[args.control_type](
         feature_dim=args.hidden_dim,
