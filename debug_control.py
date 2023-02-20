@@ -46,6 +46,8 @@ def main():
     np.random.seed(0)
     torch.random.manual_seed(0)
 
+    torch.set_printoptions(linewidth=320)
+
     dataset = [add_node_rankings(random_toy_graph()) for _ in range(10)]
 
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
@@ -72,7 +74,6 @@ def main():
     )
 
     for batch in dataloader:
-
         output = model(batch)
 
 

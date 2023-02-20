@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from torch_geometric.nn import global_add_pool
 
 from blocks import MLPBlock, GCNBlock
-from control import NullControl
 
 
 class GCN(nn.Module):
@@ -78,8 +77,6 @@ class GraphMLP(nn.Module):
         dropout_rate: float,
     ):
         super().__init__()
-
-        self.dropout_rate = dropout_rate
 
         self.encoder = MLPBlock(
             input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate

@@ -7,11 +7,13 @@ import torch_geometric
 class NullControl(nn.Module):
     """
     Just returns 0
-    Keeps GCNBlock code cleaner, by always having control 'active'
+    Keeps GCNBlock code cleaner, by always having control 'active' (less logic)
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__()
+
+        # nn.Module needs a parameter
         self.parameter = nn.Parameter(torch.empty(0))
 
     def forward(self, x, edge_index, batch_index, node_rankings):
@@ -29,6 +31,8 @@ class Control(nn.Module):
         self.node_stat = node_stat
         self.k = k
         self.normalise = normalise
+
+        # linear projection layer
         self.linear = nn.Linear(feature_dim, feature_dim)
 
         # currently learnable, does this actually help?
@@ -39,13 +43,13 @@ class Control(nn.Module):
 
     def _normalise_B(self, B):
 
-        # get degrees of B
+        # get outdegrees of B
         D_B = torch.sparse.sum(B, dim=1).to_dense()
 
-        # get 1/degrees
+        # get 1/outdegrees
         D_B_inv = D_B**-1
 
-        # mutliply rows by 1/degrees, convert nans to zero
+        # mutliply rows by 1/outdegrees, convert nans to zero
         B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
 
         return B
@@ -56,7 +60,7 @@ class Control(nn.Module):
 
         with torch.no_grad():
 
-            # find nodes with ranking better than k (0 is best)
+            # find nodes with rankings better than k (1 is best)
             active_nodes = node_rankings[self.node_stat] <= self.k
 
             # gets B matrix as per child class strategy

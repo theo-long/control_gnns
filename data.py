@@ -95,6 +95,7 @@ def random_toy_graph(num_nodes=8, feature_dim=4):
     # at most half possible edges exist
     max_edges = torch.randint(high=num_nodes**2, size=(1,)) // 4
 
+    # generate networkx graph, convert to torch_geometric
     temp_graph = torch_geometric.utils.from_networkx(
         nx.gnm_random_graph(num_nodes, max_edges)
     )
@@ -102,6 +103,7 @@ def random_toy_graph(num_nodes=8, feature_dim=4):
     x = torch.rand((num_nodes, feature_dim))
     y = torch.randint(2, (num_nodes,))
 
+    # Data objects do not play nice with direct changes
     graph = Data(x=x, y=y, edge_index=temp_graph.edge_index)
 
     return graph
