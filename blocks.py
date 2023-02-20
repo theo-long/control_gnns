@@ -50,8 +50,8 @@ class MLPBlock(nn.Module):
 
 class GCNBlock(nn.Module):
     """
-    A block of TIME VARYING GCN layers with option for control.
-    Control defaults to NullControl which returns 0 (so has no effect)
+    a block of GCN layers with (optional) control
+    has flags to make linear and / or time invariant
     """
 
     def __init__(
@@ -82,19 +82,19 @@ class GCNBlock(nn.Module):
 
     def forward(self, x, edge_index, batch_index, node_rankings):
 
+        # handles both time_inv = True and time_inv = False
         for i in range(self.depth):
-
-            # if module lists contain multiple modules, iterate over them
-            # otherwise just return the only layer
 
             conv = self.conv[i % len(self.conv)]
             control = self.control[i % len(self.control)]
 
             x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
 
-            if not self.linear:
-                x = F.relu(x)
+            # no dropout or (optional) relu after final conv
+            if i != (self.depth - 1):
+                if not self.linear:
+                    x = F.relu(x)
 
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         return x
