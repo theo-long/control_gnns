@@ -10,6 +10,8 @@ from torch_geometric.loader import DataLoader
 
 import networkx as nx
 
+import scipy
+
 
 TRAIN_SPLIT = 0.6
 VAL_SPLIT = 0.2
@@ -35,15 +37,13 @@ def betweenness_centrality(data: Data):
 def node_rankings(data: Data, stat_func: Callable):
     "finds node rankings per stat_func"
 
-    stat = stat_func(data)
+    node_stat = stat_func(data).numpy()
 
-    # finds ranking data
-    sorted_stat, indices = torch.sort(stat, descending=True)
-    _, rankings = torch.unique_consecutive(sorted_stat, return_inverse=True)
+    # ranks (negative of) node_stat 'competition style'
+    stat_rankings = scipy.stats.rankdata(-node_stat, method="min")
 
-    # creates tensor of ranking data
-    stat_rankings = torch.zeros(data.x.shape[0], dtype=torch.int32)
-    stat_rankings[indices] = rankings.to(torch.int32)
+    # convert to tensor
+    stat_rankings = torch.tensor(stat_rankings, dtype=torch.int32)
 
     return stat_rankings
 
