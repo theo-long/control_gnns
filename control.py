@@ -43,13 +43,13 @@ class Control(nn.Module):
 
     def _normalise_B(self, B):
 
-        # get outdegrees of B
+        # get indegrees of B
         D_B = torch.sparse.sum(B, dim=1).to_dense()
 
-        # get 1/outdegrees
+        # get 1/indegrees
         D_B_inv = D_B**-1
 
-        # mutliply rows by 1/outdegrees, convert nans to zero
+        # mutliply rows by 1/indegrees, convert nans to zero
         B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
 
         return B
