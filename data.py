@@ -10,7 +10,7 @@ from torch_geometric.loader import DataLoader
 
 
 import networkx as nx
-import scipy
+from scipy import stats
 
 import pathlib
 
@@ -39,7 +39,7 @@ def node_rankings(data: Data, stat_func: Callable):
     node_stat = stat_func(data).numpy()
 
     # ranks (negative of) node_stat 'competition style'
-    stat_rankings = scipy.stats.rankdata(-node_stat, method="min")
+    stat_rankings = stats.rankdata(-node_stat, method="min")
 
     # convert to tensor
     stat_rankings = torch.tensor(stat_rankings, dtype=torch.int32)
