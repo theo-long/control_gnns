@@ -5,6 +5,7 @@ from training import train_eval, TrainConfig
 from models import GraphMLP, GCN
 from data import generate_dataloaders, get_tu_dataset, get_test_val_train_split
 from control import CONTROL_DICT
+from utils import get_device
 
 import wandb
 import torchmetrics
@@ -121,9 +122,10 @@ def main():
     else:
         raise ValueError(f"Model name {args.model} not recognized")
 
+    device = get_device()
     accuracy_function = torchmetrics.Accuracy(
         "multiclass", num_classes=dataset.num_classes
-    )
+    ).to(device)
 
     def single_training_run():
         run = wandb.init(project="control_gnns")
