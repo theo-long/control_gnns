@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 from typing import Dict, List, Any, Union
 from training import train_eval, TrainConfig
 from models import GraphMLP, GCN
-from data import generate_dataloaders, get_tu_dataset
+from data import generate_dataloaders, get_tu_dataset, get_test_val_train_split
 
 import wandb
 import torchmetrics
@@ -59,17 +59,20 @@ SWEEPS_DICT = {
 }
 
 
-def training_run_factory(model_factory, epochs: int, dataset, batch_size=128):
+def training_run_factory(
+    model_factory, train_loader, val_loader, test_loader, epochs: int, batch_size=128
+):
     """Wrapper function to generate a function that trains a single model.
     Needed so we can dynamically generate a target function for different datasets.
 
     Args:
         model_factory: creates the model object
+        train_loader: train DataLoader
+        val_loader: validation DataLoader
+        test_loader: test DataLoader
         epochs (int): number of epochs to train for
-        dataset: dataset to train on
         batch_size (int, optional): batch size. Defaults to 128.
     """
-    train_loader, val_loader, test_loader = generate_dataloaders(dataset, batch_size)
 
     def single_training_run():
         run = wandb.init(project="control_gnns")
@@ -118,6 +121,10 @@ def main():
     sweep_configuration.name = args.name
     sweep_id = wandb.sweep(sweep=sweep_configuration.to_dict(), project="control_gnns")
     dataset = get_tu_dataset(args.dataset)
+    splits = get_test_val_train_split(args.dataset, seed=0)
+    train_loader, val_loader, test_loader = generate_dataloaders(
+        dataset, splits, args.batch_size
+    )
 
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
@@ -144,7 +151,11 @@ def main():
         raise ValueError(f"Model name {args.model} not recognized")
 
     training_function = training_run_factory(
-        epochs=args.epochs, model_factory=model_factory, dataset=dataset
+        epochs=args.epochs,
+        model_factory=model_factory,
+        train_loader=train_loader,
+        test_loader=test_loader,
+        val_loader=val_loader,
     )
 
     wandb.agent(sweep_id=sweep_id, function=training_function)

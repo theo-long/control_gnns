@@ -1,5 +1,5 @@
 from training import train_eval, TrainConfig, BasicLogger
-from data import get_tu_dataset, generate_dataloaders
+from data import get_tu_dataset, generate_dataloaders, get_test_val_train_split
 from models import GCN, GraphMLP
 
 import argparse
@@ -48,8 +48,9 @@ def main():
     )
 
     dataset = get_tu_dataset(args.dataset)
+    splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, args.batch_size
+        dataset, splits, args.batch_size
     )
 
     if args.model.lower() == "gcn":
