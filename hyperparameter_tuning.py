@@ -59,50 +59,6 @@ SWEEPS_DICT = {
 }
 
 
-def training_run_factory(
-    model_factory, train_loader, val_loader, test_loader, epochs: int, batch_size=128
-):
-    """Wrapper function to generate a function that trains a single model.
-    Needed so we can dynamically generate a target function for different datasets.
-
-    Args:
-        model_factory: creates the model object
-        train_loader: train DataLoader
-        val_loader: validation DataLoader
-        test_loader: test DataLoader
-        epochs (int): number of epochs to train for
-        batch_size (int, optional): batch size. Defaults to 128.
-    """
-
-    def single_training_run():
-        run = wandb.init(project="control_gnns")
-        hyperparameters = dict(wandb.config)
-        training_config = TrainConfig(
-            lr=hyperparameters.pop("lr"),
-            batch_size=batch_size,
-            epochs=epochs,
-            weight_decay=hyperparameters.pop("weight_decay"),
-            beta1=hyperparameters.pop("beta1"),
-        )
-        accuracy_function = torchmetrics.Accuracy(
-            "multiclass", num_classes=dataset.num_classes
-        )
-        model = model_factory(**hyperparameters)
-        final_stats = train_eval(
-            model,
-            training_config,
-            train_loader,
-            val_loader,
-            test_loader,
-            loss_function=cross_entropy,
-            metric_function=accuracy_function,
-            logger=wandb,
-        )
-        return final_stats
-
-    return single_training_run
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--name", required=True)
@@ -123,7 +79,7 @@ def main():
     dataset = get_tu_dataset(args.dataset)
     splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, splits, args.batch_size
+        dataset, splits, batch_size=128
     )
 
     if args.model == "mlp":
@@ -150,15 +106,34 @@ def main():
     else:
         raise ValueError(f"Model name {args.model} not recognized")
 
-    training_function = training_run_factory(
-        epochs=args.epochs,
-        model_factory=model_factory,
-        train_loader=train_loader,
-        test_loader=test_loader,
-        val_loader=val_loader,
+    accuracy_function = torchmetrics.Accuracy(
+        "multiclass", num_classes=dataset.num_classes
     )
 
-    wandb.agent(sweep_id=sweep_id, function=training_function)
+    def single_training_run():
+        run = wandb.init(project="control_gnns")
+        hyperparameters = dict(wandb.config)
+        training_config = TrainConfig(
+            lr=hyperparameters.pop("lr"),
+            batch_size=train_loader.batch_size,
+            epochs=args.epochs,
+            weight_decay=hyperparameters.pop("weight_decay"),
+            beta1=hyperparameters.pop("beta1"),
+        )
+        model = model_factory(**hyperparameters)
+        final_stats = train_eval(
+            model,
+            training_config,
+            train_loader,
+            val_loader,
+            test_loader,
+            loss_function=cross_entropy,
+            metric_function=accuracy_function,
+            logger=wandb,
+        )
+        return final_stats
+
+    wandb.agent(sweep_id=sweep_id, function=single_training_run)
 
 
 if __name__ == "__main__":
