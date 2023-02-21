@@ -25,7 +25,7 @@ class Control(nn.Module):
     Base class for control, override _get_B for different strategies
     """
 
-    def __init__(self, feature_dim, node_stat, k, normalise, alpha):
+    def __init__(self, feature_dim, node_stat, k, normalise):
         super().__init__()
 
         self.node_stat = node_stat
