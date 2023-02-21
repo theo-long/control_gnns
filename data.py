@@ -3,7 +3,7 @@ from torch_geometric.loader import DataLoader
 
 import pathlib
 
-SPLITS_LOC = pathlib.Path("./test_train_splits")
+SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
 
 
 def get_tu_dataset(name):
