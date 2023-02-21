@@ -26,7 +26,6 @@ def main():
     parser.add_argument("--control_stat", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
     parser.add_argument("--control_normalise", action="store_true")
-    parser.add_argument("--control_alpha", default=-1.0, type=float)
 
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
@@ -67,7 +66,6 @@ def main():
             node_stat=args.control_stat,
             k=args.control_k,
             normalise=args.control_normalise,
-            alpha=args.control_alpha,
         )
 
         model_factory = lambda: GCN(

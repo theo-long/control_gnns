@@ -35,9 +35,6 @@ class Control(nn.Module):
         # linear projection layer
         self.linear = nn.Linear(feature_dim, feature_dim)
 
-        # currently learnable, does this actually help?
-        self.alpha = nn.Parameter(torch.tensor(alpha))
-
     def _get_B(self):
         raise NotImplementedError
 
@@ -69,7 +66,7 @@ class Control(nn.Module):
             if self.normalise:
                 B = self._normalise_B(B)
 
-        x = self.alpha * (B @ x)
+        x = B @ x
 
         return x
 
