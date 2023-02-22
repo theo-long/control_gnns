@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 import torch_geometric
+from utils import get_device
 
 
 class NullControl(nn.Module):
@@ -25,12 +26,17 @@ class Control(nn.Module):
     Base class for control, override _get_B for different strategies
     """
 
-    def __init__(self, feature_dim, node_stat, k, normalise):
+    def __init__(self, feature_dim, node_stat, k, normalise, device=None):
         super().__init__()
 
         self.node_stat = node_stat
         self.k = k
         self.normalise = normalise
+
+        if device is None:
+            self.device = get_device()
+        else:
+            self.device = device
 
         # linear projection layer
         self.linear = nn.Linear(feature_dim, feature_dim)
@@ -88,7 +94,7 @@ class AdjacencyControl(Control):
         # apply mask row-wise
         B = A * active_nodes
 
-        return B
+        return B.to(self.device)
 
 
 class DenseControl(Control):
@@ -122,7 +128,7 @@ class DenseControl(Control):
         # zero out active node self adjacency
         torch.diagonal(B).zero_()
 
-        return B.to_sparse_coo()
+        return B.to_sparse_coo().to(self.device)
 
 
 CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}
