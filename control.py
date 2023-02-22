@@ -120,7 +120,7 @@ class DenseControl(Control):
             torch.ones((graph_sizes[i], graph_sizes[i]))
             for i in range(graph_sizes.shape[0])
         ]
-        mask = torch.block_diag(*tensor_list)
+        mask = torch.block_diag(*tensor_list).to(self.device)
 
         # apply mask element wise
         B = B * mask
