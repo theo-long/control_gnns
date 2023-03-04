@@ -1,5 +1,5 @@
 import math
-from typing import Callable
+from typing import Callable, Any
 
 import torch
 import torch_geometric
@@ -15,6 +15,50 @@ from scipy import stats
 import pathlib
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
+
+
+class ControlData(Data):
+    def __init__(
+        self,
+        data: Data,
+        control_metric: str,
+        control_type: str,
+        n_control_nodes: Callable,
+    ):
+        super().__init__()
+        self.x = data.x
+        self.edge_index = data.edge_index
+        self.y = data.y
+        self.n_control = n_control_nodes(self.x.shape[0])
+
+        active_nodes = _get_active_nodes(
+            self.n_control, control_metric, data.node_rankings
+        )
+        self.control_edge_index = _generate_control_adjacency(
+            self.edge_index, active_nodes, control_type
+        )
+
+
+def _get_active_nodes(n_control, control_metric, node_rankings):
+    return node_rankings[control_metric] <= n_control
+
+
+def _generate_control_adjacency(edge_index, active_nodes, control_type):
+
+    if control_type == "adj":
+        # get (sparse) adjacency
+        A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
+
+        # apply mask row-wise
+        B = A * active_nodes
+
+    elif control_type == "dense":
+        B = (active_nodes * 1).repeat(len(active_nodes), 1).to_sparse()
+
+    else:
+        raise ValueError("Unrecognized control type, must be adj or dense")
+
+    return B.edge_index
 
 
 def degree(data: Data):
