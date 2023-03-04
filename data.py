@@ -18,29 +18,6 @@ import pathlib
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
 
 
-class ControlData(Data):
-    def __init__(
-        self,
-        x,
-        edge_index,
-        y,
-        node_rankings,
-        control_metric: str,
-        control_type: str,
-        n_control_nodes: Callable,
-    ):
-        super().__init__()
-        self.x = x
-        self.edge_index = edge_index
-        self.y = y
-        self.n_control = int(n_control_nodes(self.x.shape[0]))
-
-        active_nodes = _get_active_nodes(self.n_control, control_metric, node_rankings)
-        self.control_edge_index = _generate_control_adjacency(
-            self.edge_index, active_nodes, control_type
-        )
-
-
 def _get_active_nodes(n_control, control_metric, node_rankings):
     return node_rankings[control_metric] <= n_control
 
@@ -72,16 +49,15 @@ class ControlTransform(BaseTransform):
         self.control_type = control_type
         self.n_control_nodes = n_control_nodes
 
-    def __call__(self, data: Data) -> ControlData:
-        return ControlData(
-            data.x,
-            data.edge_index,
-            data.y,
-            data.node_rankings,
-            self.control_metric,
-            self.control_type,
-            self.n_control_nodes,
+    def __call__(self, data: Data) -> Data:
+        data.n_control = int(self.n_control_nodes(data.x.shape[0]))
+        active_nodes = _get_active_nodes(
+            self.n_control, self.control_metric, node_rankings
         )
+        data.control_edge_index = _generate_control_adjacency(
+            data.edge_index, active_nodes, self.control_type
+        )
+        return data
 
 
 def degree(data: Data):
