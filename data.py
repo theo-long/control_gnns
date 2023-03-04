@@ -21,20 +21,21 @@ SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
 class ControlData(Data):
     def __init__(
         self,
-        data: Data,
+        x,
+        edge_index,
+        y,
+        node_rankings,
         control_metric: str,
         control_type: str,
         n_control_nodes: Callable,
     ):
         super().__init__()
-        self.x = data.x
-        self.edge_index = data.edge_index
-        self.y = data.y
+        self.x = x
+        self.edge_index = edge_index
+        self.y = y
         self.n_control = int(n_control_nodes(self.x.shape[0]))
 
-        active_nodes = _get_active_nodes(
-            self.n_control, control_metric, data.node_rankings
-        )
+        active_nodes = _get_active_nodes(self.n_control, control_metric, node_rankings)
         self.control_edge_index = _generate_control_adjacency(
             self.edge_index, active_nodes, control_type
         )
@@ -73,7 +74,13 @@ class ControlTransform(BaseTransform):
 
     def __call__(self, data: Data) -> ControlData:
         return ControlData(
-            data, self.control_metric, self.control_type, self.n_control_nodes
+            data.x,
+            data.edge_index,
+            data.y,
+            data.node_rankings,
+            self.control_metric,
+            self.control_type,
+            self.n_control_nodes,
         )
 
 
