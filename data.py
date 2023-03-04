@@ -50,15 +50,15 @@ def _generate_control_adjacency(edge_index, active_nodes, control_type):
         A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
 
         # apply mask row-wise
-        B = (A * active_nodes).to_sparse()
+        B = A * active_nodes
 
     elif control_type == "dense":
-        B = (active_nodes * 1).repeat(len(active_nodes), 1).to_sparse()
+        B = (active_nodes * 1).repeat(len(active_nodes), 1)
 
     else:
         raise ValueError("Unrecognized control type, must be adj or dense")
 
-    return B.edge_index
+    return B.nonzero().T
 
 
 def degree(data: Data):
