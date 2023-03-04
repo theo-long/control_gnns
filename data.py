@@ -30,7 +30,7 @@ class ControlData(Data):
         self.x = data.x
         self.edge_index = data.edge_index
         self.y = data.y
-        self.n_control = n_control_nodes(self.x.shape[0])
+        self.n_control = int(n_control_nodes(self.x.shape[0]))
 
         active_nodes = _get_active_nodes(
             self.n_control, control_metric, data.node_rankings
