@@ -1,10 +1,11 @@
 import math
-from typing import Callable, Any
+from typing import Callable, Any, Optional
 
 import torch
 import torch_geometric
 
-from torch_geometric.data.data import Data
+from torch_geometric.data import Data
+from torch_geometric.transforms import BaseTransform
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 
@@ -61,6 +62,21 @@ def _generate_control_adjacency(edge_index, active_nodes, control_type):
     return B.nonzero().T
 
 
+class ControlTransform(BaseTransform):
+    def __init__(
+        self, control_metric: str, control_type: str, n_control_nodes: Callable
+    ) -> None:
+        super().__init__()
+        self.control_metric = control_metric
+        self.control_type = control_type
+        self.n_control_nodes = n_control_nodes
+
+    def __call__(self, data: Data) -> ControlData:
+        return ControlData(
+            data, self.control_metric, self.control_type, self.n_control_nodes
+        )
+
+
 def degree(data: Data):
     "wraps nx.degree to return flat tensor"
 
@@ -109,12 +125,24 @@ def add_node_rankings(data: Data):
     return data
 
 
-def get_tu_dataset(name):
+def get_tu_dataset(
+    name,
+    control_metric: Optional[str] = None,
+    control_type: Optional[str] = None,
+    n_control_nodes: Optional[Callable] = None,
+):
+    if control_metric is not None:
+        control_transform = ControlTransform(
+            control_metric, control_type, n_control_nodes
+        )
+    else:
+        control_transform = None
     dataset = TUDataset(
         root="./datasets",
         name=name,
         use_node_attr=True,
         pre_transform=add_node_rankings,
+        transform=control_transform,
     )
     return dataset
 
