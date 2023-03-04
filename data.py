@@ -50,7 +50,7 @@ def _generate_control_adjacency(edge_index, active_nodes, control_type):
         A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
 
         # apply mask row-wise
-        B = A * active_nodes
+        B = (A * active_nodes).to_sparse()
 
     elif control_type == "dense":
         B = (active_nodes * 1).repeat(len(active_nodes), 1).to_sparse()
