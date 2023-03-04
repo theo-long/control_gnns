@@ -52,7 +52,7 @@ class ControlTransform(BaseTransform):
     def __call__(self, data: Data) -> Data:
         data.n_control = int(self.n_control_nodes(data.x.shape[0]))
         active_nodes = _get_active_nodes(
-            data.n_control, self.control_metric, node_rankings
+            data.n_control, self.control_metric, data.node_rankings
         )
         data.control_edge_index = _generate_control_adjacency(
             data.edge_index, active_nodes, self.control_type
