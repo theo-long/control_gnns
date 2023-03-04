@@ -4,6 +4,8 @@ from typing import Dict, List, Any, Union
 from training import train_eval, TrainConfig
 from models import GraphMLP, GCN
 from data import generate_dataloaders, get_tu_dataset, get_test_val_train_split
+from control import CONTROL_DICT
+from utils import get_device
 
 import wandb
 import torchmetrics
@@ -64,12 +66,18 @@ def main():
     parser.add_argument("-n", "--name", required=True)
     parser.add_argument("-e", "--epochs", default=20, type=int)
     parser.add_argument("-m", "--model", required=True)
+
+    parser.add_argument("--control_type", default="null", type=str)
+    parser.add_argument("--control_stat", default="degree", type=str)
+    parser.add_argument("--control_k", default=1, type=int)
+    parser.add_argument("--control_normalise", action="store_true")
+
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--num_encoding_layers", default=2, type=int)
     parser.add_argument("--num_decoding_layers", default=2, type=int)
-    parser.add_argument("--num_conv_layers", default=2, type=int)
+    parser.add_argument("--conv_depth", default=2, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
     args = parser.parse_args()
 
@@ -92,11 +100,19 @@ def main():
             dropout_rate=dropout_rate,  # passed during hyperparameter tuning
         )
     elif args.model == "gcn":
+        control_factory = lambda: CONTROL_DICT[args.control_type](
+            feature_dim=args.hidden_dim,
+            node_stat=args.control_stat,
+            k=args.control_k,
+            normalise=args.control_normalise,
+        )
+
         model_factory = lambda dropout_rate: GCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
-            num_conv_layers=args.num_conv_layers,
+            conv_depth=args.conv_depth,
+            control_factory=control_factory,
             num_decoding_layers=args.num_encoding_layers,
             num_encoding_layers=args.num_decoding_layers,
             dropout_rate=dropout_rate,  # passed during hyperparameter tuning
@@ -106,9 +122,10 @@ def main():
     else:
         raise ValueError(f"Model name {args.model} not recognized")
 
+    device = get_device()
     accuracy_function = torchmetrics.Accuracy(
         "multiclass", num_classes=dataset.num_classes
-    )
+    ).to(device)
 
     def single_training_run():
         run = wandb.init(project="control_gnns")

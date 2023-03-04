@@ -1,8 +1,9 @@
+from typing import Callable
+
 import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from control import NullControl
 
 
 class MLPBlock(nn.Module):
@@ -49,77 +50,51 @@ class MLPBlock(nn.Module):
 
 class GCNBlock(nn.Module):
     """
-    A block of TIME VARYING GCN layers with option for control.
-    Control defaults to NullControl which returns 0 (so has no effect)
+    a block of GCN layers with (optional) control
+    has flags to make linear and / or time invariant
     """
 
     def __init__(
         self,
         feature_dim: int,
-        num_layers: int,
+        depth: int,
+        control_factory: Callable,
         dropout_rate: float,
-        linear: bool = False,
-        control_factory: nn.Module = NullControl,
-    ):
-        super().__init__()
-
-        self.dropout_rate = dropout_rate
-        self.linear = linear
-
-        convs = []
-        controls = []
-
-        for _ in range(num_layers):
-            convs.append(GCNConv(feature_dim, feature_dim))
-            controls.append(control_factory())
-
-        self.convs = nn.ModuleList(convs)
-        self.controls = nn.ModuleList(controls)
-
-    def forward(self, x, edge_index):
-
-        for conv, control in zip(self.convs, self.controls):
-            x = conv(x, edge_index) + control(x, edge_index)
-
-            if not self.linear:
-                x = F.relu(x)
-
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
-        return x
-
-
-class GCNBlockTimeInv(nn.Module):
-    """
-    A block of TIME INVARIANT GCN layers with option for control.
-    Control defaults to NullControl which returns 0 (so has no effect)
-    """
-
-    def __init__(
-        self,
-        feature_dim,
-        depth,
-        dropout_rate,
-        linear=False,
-        control_factory=NullControl,
+        linear: bool,
+        time_inv: bool,
     ):
         super().__init__()
 
         self.depth = depth
         self.dropout_rate = dropout_rate
         self.linear = linear
+        self.time_inv = time_inv
 
-        self.conv = GCNConv(feature_dim, feature_dim)
-        self.control = control_factory()
+        if self.time_inv:
+            self.conv = nn.ModuleList([GCNConv(feature_dim, feature_dim)])
+            self.control = nn.ModuleList([control_factory()])
 
-    def forward(self, x, edge_index):
+        else:
+            self.conv = nn.ModuleList(
+                [GCNConv(feature_dim, feature_dim) for _ in range(depth)]
+            )
+            self.control = nn.ModuleList([control_factory() for _ in range(depth)])
 
-        for _ in range(self.depth):
-            x = self.conv(x, edge_index) + self.control(x, edge_index)
+    def forward(self, x, edge_index, batch_index, node_rankings):
 
-            if not self.linear:
-                x = F.relu(x)
+        # handles both time_inv = True and time_inv = False
+        for i in range(self.depth):
 
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
+            conv = self.conv[i % len(self.conv)]
+            control = self.control[i % len(self.control)]
+
+            x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
+
+            # no dropout or (optional) relu after final conv
+            if i != (self.depth - 1):
+                if not self.linear:
+                    x = F.relu(x)
+
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
 
         return x
