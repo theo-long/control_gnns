@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 import torch_geometric
+from torch_geometric.utils import spmm, scatter
 from utils import get_device
 
 
@@ -17,118 +18,63 @@ class NullControl(nn.Module):
         # nn.Module needs a parameter
         self.parameter = nn.Parameter(torch.empty(0))
 
-    def forward(self, x, edge_index, batch_index, node_rankings):
+    def forward(self, x, control_edge_index):
         return 0
 
 
 class Control(nn.Module):
     """
-    Base class for control, override _get_B for different strategies
+    Base class for control, forward for different strategies (convolutional vs. message-passing)
     """
 
-    def __init__(self, feature_dim, node_stat, k, normalise, device=None):
+    def __init__(self, feature_dim, device=None):
         super().__init__()
-
-        self.node_stat = node_stat
-        self.k = k
-        self.normalise = normalise
 
         if device is None:
             self.device = get_device()
         else:
             self.device = device
 
-        # linear projection layer
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def _get_B(self):
+    def forward(self, x, control_edge_index):
         raise NotImplementedError
 
-    def _normalise_B(self, B):
 
-        # get indegrees of B
-        D_B = torch.sparse.sum(B, dim=1).to_dense()
+class ConvolutionalControl(Control):
+    """
+    Convolutional layer : B H W
+    """
 
-        # get 1/indegrees
-        D_B_inv = D_B**-1
+    def __init__(self, feature_dim, normalize=True, **kwargs):
+        super().__init__(feature_dim, **kwargs)
+        self.linear = nn.Linear(feature_dim, feature_dim)
 
-        # mutliply rows by 1/indegrees, convert nans to zero
-        B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
+    def normalize(self, control_edge_index):
+        edge_weight = torch.ones(
+            (control_edge_index.size(1),), device=control_edge_index.device
+        )
+        deg = scatter(edge_weight, control_edge_index[1], dim=0, reduce="sum")
+        inv_deg = deg.pow(-1)
+        inv_deg = inv_deg.masked_fill_(inv_deg == float("inf"), 0)
+        edge_weight = inv_deg * edge_weight
 
-        return B
+        return control_edge_index, edge_weight
 
-    def forward(self, x, edge_index, batch_index, node_rankings):
+    def forward(self, x, control_edge_index):
+        if self.normalize:
+            control_edge_index, edge_weight = self.normalize(control_edge_index)
 
         x = self.linear(x)
-
-        with torch.no_grad():
-
-            # find nodes with rankings better than k (1 is best)
-            active_nodes = node_rankings[self.node_stat] <= self.k
-
-            # gets B matrix as per child class strategy
-            B = self._get_B(edge_index, batch_index, active_nodes)
-
-            if self.normalise:
-                B = self._normalise_B(B)
-
-        x = B @ x
-
-        return x
+        return spmm(control_edge_index, x)
 
 
-class AdjacencyControl(Control):
+class MessagePassingControl(Control):
     """
-    Experiment 1 in our plan
-    Excited node interacts only via exisiting edges (unidirectionally)
+    Message passing control layer
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, feature_dim, normalize=True, **kwargs):
+        super().__init__(feature_dim, **kwargs)
+        self.linear = nn.Linear(feature_dim, feature_dim)
 
-    def _get_B(self, edge_index, batch_index, active_nodes):
-
-        # get (sparse) adjacency
-        A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
-
-        # apply mask row-wise
-        B = A * active_nodes
-
-        return B.to(self.device)
-
-
-class DenseControl(Control):
-    """
-    Experiment 2 in our plan
-    Excited node interacts with all other nodes (in same graph) (unidirectionally)
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def _get_B(self, edge_index, batch_index, active_nodes):
-
-        # TODO process not fully sparse (some ops couldn't do sparse)
-
-        # tile active_nodes into square matrix
-        B = torch.tile(active_nodes, (active_nodes.shape[-1], 1))
-
-        # TODO this is slow (has for loop) maybe possible without?
-        # generate block diagonal mask (prevents edges between graphs in batch)
-        graph_sizes = torch.unique_consecutive(batch_index, return_counts=True)[1]
-        tensor_list = [
-            torch.ones((graph_sizes[i], graph_sizes[i]))
-            for i in range(graph_sizes.shape[0])
-        ]
-        mask = torch.block_diag(*tensor_list).to(self.device)
-
-        # apply mask element wise
-        B = B * mask
-
-        # zero out active node self adjacency
-        torch.diagonal(B).zero_()
-
-        return B.to_sparse_coo().to(self.device)
-
-
-CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}
+    def forward(self, x, control_edge_index):
+        pass

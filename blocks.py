@@ -80,7 +80,7 @@ class GCNBlock(nn.Module):
             )
             self.control = nn.ModuleList([control_factory() for _ in range(depth)])
 
-    def forward(self, x, edge_index, batch_index, node_rankings):
+    def forward(self, x, edge_index, control_edge_index):
 
         # handles both time_inv = True and time_inv = False
         for i in range(self.depth):
@@ -88,7 +88,7 @@ class GCNBlock(nn.Module):
             conv = self.conv[i % len(self.conv)]
             control = self.control[i % len(self.control)]
 
-            x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
+            x = conv(x, edge_index) + control(x, control_edge_index)
 
             # no dropout or (optional) relu after final conv
             if i != (self.depth - 1):
