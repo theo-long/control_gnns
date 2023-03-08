@@ -4,6 +4,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+from control import NullControl, ControlGCNConv
 
 
 class MLPBlock(nn.Module):
@@ -16,8 +17,8 @@ class MLPBlock(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dim: int,
-        num_layers: int,
         dropout_rate: float,
+        num_layers: int = 2,
     ):
         super().__init__()
 
@@ -58,7 +59,6 @@ class GCNBlock(nn.Module):
         self,
         feature_dim: int,
         depth: int,
-        control_factory: Callable,
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
@@ -72,13 +72,13 @@ class GCNBlock(nn.Module):
 
         if self.time_inv:
             self.conv = nn.ModuleList([GCNConv(feature_dim, feature_dim)])
-            self.control = nn.ModuleList([control_factory()])
+            self.control = nn.ModuleList([ControlGCNConv(feature_dim, feature_dim)])
 
         else:
             self.conv = nn.ModuleList(
                 [GCNConv(feature_dim, feature_dim) for _ in range(depth)]
             )
-            self.control = nn.ModuleList([control_factory() for _ in range(depth)])
+            self.control = nn.ModuleList([ControlGCNConv(feature_dim, feature_dim) for _ in range(depth)])
 
     def forward(self, x, edge_index, control_edge_index):
 

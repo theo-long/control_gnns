@@ -20,9 +20,6 @@ class GCN(nn.Module):
         output_dim: int,
         hidden_dim: int,
         conv_depth: int,
-        num_encoding_layers: int,
-        num_decoding_layers: int,
-        control_factory: Callable,
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
@@ -30,15 +27,15 @@ class GCN(nn.Module):
         super().__init__()
 
         self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
+            input_dim, hidden_dim, hidden_dim, dropout_rate
         )
 
         self.gcn_block = GCNBlock(
-            hidden_dim, conv_depth, control_factory, dropout_rate, linear, time_inv,
+            hidden_dim, conv_depth, dropout_rate, linear, time_inv,
         )
 
         self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, num_decoding_layers, dropout_rate
+            hidden_dim, output_dim, hidden_dim, dropout_rate
         )
 
     def forward(self, data):
@@ -67,18 +64,16 @@ class GraphMLP(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dim: int,
-        num_encoding_layers: int,
-        num_decoding_layers: int,
         dropout_rate: float,
     ):
         super().__init__()
 
         self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
+            input_dim, hidden_dim, hidden_dim, dropout_rate
         )
 
         self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, num_decoding_layers, dropout_rate
+            hidden_dim, output_dim, hidden_dim, dropout_rate
         )
 
     def forward(self, data):

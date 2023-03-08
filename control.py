@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 
 import torch_geometric
-from torch_geometric.utils import spmm, scatter
-from utils import get_device
+from torch_geometric.nn import GCNConv
+from torch_geometric.utils import scatter
 
 
 class NullControl(nn.Module):
@@ -22,59 +22,26 @@ class NullControl(nn.Module):
         return 0
 
 
-class Control(nn.Module):
-    """
-    Base class for control, forward for different strategies (convolutional vs. message-passing)
-    """
-
-    def __init__(self, feature_dim, device=None):
+class ControlGCNConv(nn.Module):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
+        self.conv = GCNConv(in_channels, out_channels, add_self_loops=False, normalize=False)
 
-        if device is None:
-            self.device = get_device()
-        else:
-            self.device = device
+    def _row_normalize(self, edge_index):
 
-    def forward(self, x, control_edge_index):
-        raise NotImplementedError
-
-
-class ConvolutionalControl(Control):
-    """
-    Convolutional layer : B H W
-    """
-
-    def __init__(self, feature_dim, normalize=True, **kwargs):
-        super().__init__(feature_dim, **kwargs)
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def normalize(self, control_edge_index):
         edge_weight = torch.ones(
-            (control_edge_index.size(1),), device=control_edge_index.device
+            (edge_index.size(1),), device=edge_index.device
         )
-        deg = scatter(edge_weight, control_edge_index[1], dim=0, reduce="sum")
-        inv_deg = deg.pow(-1)
-        inv_deg = inv_deg.masked_fill_(inv_deg == float("inf"), 0)
-        edge_weight = inv_deg * edge_weight
+    
+        # theo had index[1]
+        deg = scatter(edge_weight, edge_index[0], dim=0, reduce='sum')
+        deg_inv = deg.pow_(-1.0)
+        deg_inv.masked_fill_(deg_inv == float('inf'), 0)
 
-        return control_edge_index, edge_weight
+        edge_weight = deg_inv * edge_weight
 
-    def forward(self, x, control_edge_index):
-        if self.normalize:
-            control_edge_index, edge_weight = self.normalize(control_edge_index)
+        return edge_index, edge_weight
 
-        x = self.linear(x)
-        return spmm(control_edge_index, x)
-
-
-class MessagePassingControl(Control):
-    """
-    Message passing control layer
-    """
-
-    def __init__(self, feature_dim, normalize=True, **kwargs):
-        super().__init__(feature_dim, **kwargs)
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def forward(self, x, control_edge_index):
-        pass
+    def forward(self, x, edge_index):
+        edge_index, edge_weight = self._row_normalize(edge_index)
+        return self.conv(x, edge_index, edge_weight)
