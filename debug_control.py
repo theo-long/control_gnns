@@ -37,7 +37,11 @@ def main():
 
     torch.set_printoptions(linewidth=320)
 
-    transform = ControlTransform(args.control_type, args.control_metric, args.control_k)
+    if args.control_type != 'null':
+        transform = ControlTransform(args.control_type, args.control_metric, args.control_k)
+    else:
+        transform = None
+
     pre_transform = RankingTransform()
 
     dataset = ToyDataset(transform, pre_transform)
@@ -52,6 +56,7 @@ def main():
         dropout_rate=args.dropout,
         linear=args.linear,
         time_inv=args.time_inv,
+        use_control=args.control_type != "null",
     )
 
     for batch in dataloader:

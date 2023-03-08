@@ -11,7 +11,7 @@ from blocks import MLPBlock, GCNBlock
 class GCN(nn.Module):
     """
     The original GCN architecture from Kipf and Welling, with additional node encoding/decoding MLP layers.
-    + Optional arguments for linearity and time-invarince
+    + Optional arguments for linearity, time-invarince, and control modules
     """
 
     def __init__(
@@ -23,20 +23,19 @@ class GCN(nn.Module):
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
+        use_control: bool,
     ):
         super().__init__()
 
-        self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, dropout_rate
-        )
+        self.use_control = use_control
+
+        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
         self.gcn_block = GCNBlock(
-            hidden_dim, conv_depth, dropout_rate, linear, time_inv,
+            hidden_dim, conv_depth, dropout_rate, linear, time_inv, use_control
         )
 
-        self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, dropout_rate
-        )
+        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
 
     def forward(self, data):
 
@@ -44,7 +43,10 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        x = self.gcn_block(x, data.edge_index, data.control_edge_index)
+        if self.use_control:
+            x = self.gcn_block(x, data.edge_index, data.control_edge_index)
+        else:
+            x = self.gcn_block(x, data.edge_index)
 
         x = global_add_pool(x, data.batch)
 
@@ -68,13 +70,9 @@ class GraphMLP(nn.Module):
     ):
         super().__init__()
 
-        self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, dropout_rate
-        )
+        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
-        self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, dropout_rate
-        )
+        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
 
     def forward(self, data):
 

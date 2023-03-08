@@ -1,5 +1,5 @@
 from training import train_eval, TrainConfig, BasicLogger
-from data import get_tu_dataset, ControlTransform, generate_dataloaders, get_test_val_train_split
+from data import get_tu_dataset, generate_dataloaders
 from models import GCN, GraphMLP
 
 import argparse
@@ -50,13 +50,12 @@ def main():
         beta2=args.beta2,
     )
 
-    transform = ControlTransform(args.control_type, args.control_metric, args.control_k)
+    dataset = get_tu_dataset(
+        args.dataset, args.control_type, args.control_metric, args.control_k
+    )
 
-    dataset = get_tu_dataset(args.dataset, transform)
-
-    splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, splits, args.batch_size
+        dataset, args.dataset, args.batch_size
     )
 
     if args.model.lower() == "gcn":
@@ -69,6 +68,7 @@ def main():
             dropout_rate=args.dropout,
             linear=args.linear,
             time_inv=args.time_inv,
+            use_control=args.control_type != "null",
         )
 
     elif args.model.lower() == "mlp":
