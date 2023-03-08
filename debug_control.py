@@ -37,8 +37,10 @@ def main():
 
     torch.set_printoptions(linewidth=320)
 
-    if args.control_type != 'null':
-        transform = ControlTransform(args.control_type, args.control_metric, args.control_k)
+    if args.control_type != "null":
+        transform = ControlTransform(
+            args.control_type, args.control_metric, args.control_k
+        )
     else:
         transform = None
 

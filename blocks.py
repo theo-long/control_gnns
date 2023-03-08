@@ -76,7 +76,9 @@ class GCNBlock(nn.Module):
             self.conv_layers = nn.ModuleList([GCNConv(feature_dim, feature_dim)])
 
             if self.use_control:
-                self.control_layers = nn.ModuleList([ControlGCNConv(feature_dim, feature_dim)])
+                self.control_layers = nn.ModuleList(
+                    [ControlGCNConv(feature_dim, feature_dim)]
+                )
 
         else:
             self.conv_layers = nn.ModuleList(
