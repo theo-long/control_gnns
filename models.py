@@ -34,12 +34,7 @@ class GCN(nn.Module):
         )
 
         self.gcn_block = GCNBlock(
-            hidden_dim,
-            conv_depth,
-            control_factory,
-            dropout_rate,
-            linear,
-            time_inv,
+            hidden_dim, conv_depth, control_factory, dropout_rate, linear, time_inv,
         )
 
         self.decoder = MLPBlock(

@@ -50,7 +50,8 @@ class ControlTransform(BaseTransform):
         self.n_control_nodes = n_control_nodes
 
     def __call__(self, data: Data) -> Data:
-        data.n_control = int(self.n_control_nodes(data.x.shape[0]))
+        #data.n_control = int(self.n_control_nodes(data.x.shape[0]))
+        data.n_control = int(self.n_control_nodes)
         active_nodes = _get_active_nodes(
             data.n_control, self.control_metric, data.node_rankings
         )
@@ -157,7 +158,7 @@ def generate_dataloaders(dataset: TUDataset, splits, batch_size):
 def random_toy_graph(num_nodes=8, feature_dim=4):
 
     # at most half possible edges exist
-    max_edges = torch.randint(high=num_nodes**2, size=(1,)) // 4
+    max_edges = torch.randint(high=num_nodes ** 2, size=(1,)) // 4
 
     # generate networkx graph, convert to torch_geometric
     temp_graph = torch_geometric.utils.from_networkx(

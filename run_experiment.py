@@ -1,7 +1,6 @@
 from training import train_eval, TrainConfig, BasicLogger
 from data import get_tu_dataset, generate_dataloaders, get_test_val_train_split
 from models import GCN, GraphMLP
-from control import CONTROL_DICT
 
 import argparse
 import wandb
@@ -23,7 +22,7 @@ def main():
     parser.add_argument("--time_inv", action="store_true")
 
     parser.add_argument("--control_type", default="null", type=str)
-    parser.add_argument("--control_stat", default="degree", type=str)
+    parser.add_argument("--control_metric", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
     parser.add_argument("--control_normalise", action="store_true")
 
@@ -53,7 +52,11 @@ def main():
         beta2=args.beta2,
     )
 
-    dataset = get_tu_dataset(args.dataset)
+    dataset = get_tu_dataset(args.dataset,
+            control_metric=args.control_metric,
+            control_type=args.control_type,
+            n_control_nodes=args.control_k)
+
     splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
         dataset, splits, args.batch_size
