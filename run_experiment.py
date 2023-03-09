@@ -10,6 +10,7 @@ from training import train_eval, TrainConfig, BasicLogger
 from data import get_tu_dataset, generate_dataloaders
 from models import GCN, GraphMLP
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="PROTEINS")
@@ -51,7 +52,11 @@ def main():
     )
 
     dataset = get_tu_dataset(
-        args.dataset, args.control_type, args.control_edges, args.control_metric, args.control_k
+        args.dataset,
+        args.control_type,
+        args.control_edges,
+        args.control_metric,
+        args.control_k,
     )
 
     train_loader, val_loader, test_loader = generate_dataloaders(

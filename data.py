@@ -71,6 +71,7 @@ class ControlTransform(BaseTransform):
     used to identify the edges to 'activate' in control modules
     applied as transform while dataloading
     """
+
     def __init__(self, control_edges: str, metric: str, k: int) -> None:
         super().__init__()
 
@@ -174,6 +175,7 @@ class ToyDataset(InMemoryDataset):
     """
     a toy dataset used in debug_control.py
     """
+
     def __init__(self, transform, pre_transform):
         super().__init__(transform=transform, pre_transform=pre_transform)
 

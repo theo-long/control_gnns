@@ -10,6 +10,7 @@ from torch.nn.functional import cross_entropy
 from torchmetrics import Accuracy
 from torch_geometric.loader import DataLoader
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--linear", action="store_true")
@@ -53,11 +54,12 @@ def main():
         dropout_rate=args.dropout,
         linear=args.linear,
         time_inv=args.time_inv,
-        control_type=args.control_type
+        control_type=args.control_type,
     )
 
     for batch in dataloader:
         output = model(batch)
+
 
 if __name__ == "__main__":
     main()

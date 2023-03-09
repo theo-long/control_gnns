@@ -14,9 +14,7 @@ class ControlGCNConv(nn.Module):
     def __init__(self, channels):
         super().__init__()
 
-        self.conv = GCNConv(
-            channels, channels, add_self_loops=False, normalize=False
-        )
+        self.conv = GCNConv(channels, channels, add_self_loops=False, normalize=False)
 
     def _normalize(self, edge_index):
 
@@ -40,18 +38,27 @@ class ControlMP(MessagePassing):
     """
     adapted from practical 2 codebase
     """
-    def __init__(self, channels, aggr='add'):
+
+    def __init__(self, channels, aggr="add"):
         super().__init__(aggr=aggr)
 
         self.mlp_msg = nn.Sequential(
-            nn.Linear(2*channels, channels), nn.BatchNorm1d(channels), nn.ReLU(),
-            nn.Linear(channels, channels), nn.BatchNorm1d(channels), nn.ReLU()
-            )
-        
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
+
         self.mlp_upd = nn.Sequential(
-            nn.Linear(2*channels, channels), nn.BatchNorm1d(channels), nn.ReLU(), 
-            nn.Linear(channels, channels), nn.BatchNorm1d(channels), nn.ReLU()
-            )
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
 
     def forward(self, h, edge_index):
         out = self.propagate(edge_index, h=h)
@@ -59,9 +66,9 @@ class ControlMP(MessagePassing):
 
     def message(self, h_i, h_j):
         return self.mlp_msg(torch.cat([h_i, h_j], dim=-1))
-    
+
     def update(self, aggr_out, h):
         return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 
-CONTROL_DICT = {'gcn': ControlGCNConv, 'mp': ControlMP}
+CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}

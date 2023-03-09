@@ -80,7 +80,7 @@ class GCNBlock(nn.Module):
 
         self.conv_layers = nn.ModuleList(self.conv_layers)
 
-        if control_type != 'null':
+        if control_type != "null":
 
             control_factory = CONTROL_DICT[control_type]
 
