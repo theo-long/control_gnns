@@ -4,7 +4,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
-from control import ControlGCNConv
+from control import CONTROL_DICT
 
 
 class MLPBlock(nn.Module):
@@ -62,7 +62,7 @@ class GCNBlock(nn.Module):
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
-        use_control: bool,
+        control_type: str,
     ):
         super().__init__()
 
@@ -70,25 +70,28 @@ class GCNBlock(nn.Module):
         self.dropout_rate = dropout_rate
         self.linear = linear
         self.time_inv = time_inv
-        self.use_control = use_control
 
-        if self.time_inv:
-            self.conv_layers = nn.ModuleList([GCNConv(feature_dim, feature_dim)])
+        num_layers = 1 if self.time_inv else self.depth
 
-            if self.use_control:
-                self.control_layers = nn.ModuleList(
-                    [ControlGCNConv(feature_dim, feature_dim)]
-                )
+        self.conv_layers = []
+
+        for _ in range(num_layers):
+            self.conv_layers.append(GCNConv(feature_dim, feature_dim))
+
+        self.conv_layers = nn.ModuleList(self.conv_layers)
+
+        if control_type != 'null':
+
+            control_factory = CONTROL_DICT[control_type]
+
+            self.control_layers = []
+
+            for _ in range(num_layers):
+                self.control_layers.append(control_factory(feature_dim))
+            self.control_layers = nn.ModuleList(self.control_layers)
 
         else:
-            self.conv_layers = nn.ModuleList(
-                [GCNConv(feature_dim, feature_dim) for _ in range(depth)]
-            )
-
-            if self.use_control:
-                self.control_layers = nn.ModuleList(
-                    [ControlGCNConv(feature_dim, feature_dim) for _ in range(depth)]
-                )
+            self.control_layers = None
 
     def forward(self, x, edge_index, control_edge_index=None):
 
@@ -99,7 +102,7 @@ class GCNBlock(nn.Module):
 
             conv_out = self.conv_layers[layer_index](x, edge_index)
 
-            if self.use_control:
+            if self.control_layers is not None:
                 control_out = self.control_layers[layer_index](x, control_edge_index)
                 x = conv_out + control_out
             else:

@@ -1,19 +1,14 @@
+import argparse
 import random
 import numpy as np
 
 from data import ToyDataset, RankingTransform, ControlTransform
 from models import GCN, GraphMLP
 
-import argparse
-
 import torch
 from torch.nn.functional import cross_entropy
 from torchmetrics import Accuracy
 from torch_geometric.loader import DataLoader
-
-
-import pandas as pd
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -21,9 +16,9 @@ def main():
     parser.add_argument("--time_inv", action="store_true")
 
     parser.add_argument("--control_type", default="null", type=str)
+    parser.add_argument("--control_edges", default="adj", type=str)
     parser.add_argument("--control_metric", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
-    parser.add_argument("--control_normalise", action="store_true")
 
     parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
@@ -39,7 +34,7 @@ def main():
 
     if args.control_type != "null":
         transform = ControlTransform(
-            args.control_type, args.control_metric, args.control_k
+            args.control_edges, args.control_metric, args.control_k
         )
     else:
         transform = None
@@ -58,12 +53,11 @@ def main():
         dropout_rate=args.dropout,
         linear=args.linear,
         time_inv=args.time_inv,
-        use_control=args.control_type != "null",
+        control_type=args.control_type
     )
 
     for batch in dataloader:
         output = model(batch)
-
 
 if __name__ == "__main__":
     main()

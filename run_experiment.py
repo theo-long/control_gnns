@@ -1,16 +1,14 @@
-from training import train_eval, TrainConfig, BasicLogger
-from data import get_tu_dataset, generate_dataloaders
-from models import GCN, GraphMLP
-
 import argparse
 import wandb
+import pandas as pd
 
 import torch
 from torch.nn.functional import cross_entropy
 from torchmetrics import Accuracy
 
-import pandas as pd
-
+from training import train_eval, TrainConfig, BasicLogger
+from data import get_tu_dataset, generate_dataloaders
+from models import GCN, GraphMLP
 
 def main():
     parser = argparse.ArgumentParser()
@@ -22,13 +20,14 @@ def main():
     parser.add_argument("--time_inv", action="store_true")
 
     parser.add_argument("--control_type", default="null", type=str)
+    parser.add_argument("--control_edges", default="adj", type=str)
     parser.add_argument("--control_metric", default="degree", type=str)
     parser.add_argument("--control_k", default=1, type=int)
-    parser.add_argument("--control_normalise", action="store_true")
 
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
     parser.add_argument("--dropout", default=0.0, type=float)
+
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--weight_decay", default=0.0, type=float)
@@ -39,6 +38,7 @@ def main():
 
     args = parser.parse_args()
 
+    # TODO TODO sort out when and where to seed
     torch.random.manual_seed(0)
 
     training_config = TrainConfig(
@@ -51,7 +51,7 @@ def main():
     )
 
     dataset = get_tu_dataset(
-        args.dataset, args.control_type, args.control_metric, args.control_k
+        args.dataset, args.control_type, args.control_edges, args.control_metric, args.control_k
     )
 
     train_loader, val_loader, test_loader = generate_dataloaders(
@@ -68,7 +68,7 @@ def main():
             dropout_rate=args.dropout,
             linear=args.linear,
             time_inv=args.time_inv,
-            use_control=args.control_type != "null",
+            control_type=args.control_type,
         )
 
     elif args.model.lower() == "mlp":

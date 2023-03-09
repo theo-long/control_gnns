@@ -23,16 +23,16 @@ class GCN(nn.Module):
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
-        use_control: bool,
+        control_type: str,
     ):
         super().__init__()
 
-        self.use_control = use_control
+        self.control_type = control_type
 
         self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
         self.gcn_block = GCNBlock(
-            hidden_dim, conv_depth, dropout_rate, linear, time_inv, use_control
+            hidden_dim, conv_depth, dropout_rate, linear, time_inv, control_type,
         )
 
         self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
@@ -43,10 +43,10 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        if self.use_control:
-            x = self.gcn_block(x, data.edge_index, data.control_edge_index)
-        else:
+        if self.control_type == 'null':
             x = self.gcn_block(x, data.edge_index)
+        else:
+            x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
         x = global_add_pool(x, data.batch)
 

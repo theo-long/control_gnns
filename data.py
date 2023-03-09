@@ -67,10 +67,10 @@ class RankingTransform(BaseTransform):
 
 
 class ControlTransform(BaseTransform):
-    def __init__(self, control_type: str, metric: str, k: int) -> None:
+    def __init__(self, control_edges: str, metric: str, k: int) -> None:
         super().__init__()
 
-        self.control_type = control_type
+        self.control_edges = control_edges
         self.metric = metric
 
         # TODO replace with callable
@@ -78,17 +78,17 @@ class ControlTransform(BaseTransform):
 
     def _gen_control_edge_index(self, edge_index, active_nodes):
 
-        if self.control_type == "adj":
+        if self.control_edges == "adj":
 
             # could this be faster? is it slowing things down?
             indices = []
             for node in active_nodes:
-                indices.append((edge_index[1, :] == node).nonzero().flatten())
+                indices.append((edge_index[0, :] == node).nonzero().flatten())
             indices = torch.cat(indices)
 
             control_edge_index = edge_index[:, indices]
 
-        elif self.control_type == "dense":
+        elif self.control_edges == "dense":
 
             all_nodes = torch.arange(edge_index.max() + 1)
             ones = torch.ones_like(all_nodes)
@@ -120,10 +120,10 @@ class ControlTransform(BaseTransform):
         return data
 
 
-def get_tu_dataset(name, control_type, control_metric, control_k):
+def get_tu_dataset(name, control_type, control_edges, control_metric, control_k):
 
     if control_type != "null":
-        transform = ControlTransform(control_type, control_metric, control_k)
+        transform = ControlTransform(control_edges, control_metric, control_k)
     else:
         transform = None
 
