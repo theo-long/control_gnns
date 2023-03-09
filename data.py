@@ -86,26 +86,23 @@ class ControlTransform(BaseTransform):
 
         if self.control_edges == "adj":
 
-            # could this be faster? is it slowing things down?
-            indices = []
-            for node in active_nodes:
-                indices.append((edge_index[0, :] == node).nonzero().flatten())
-            indices = torch.cat(indices)
+            # I did this like this to avoid a for loop (over the number of active nodes)
+            # not sure how much it actually speeds it up
+            expanded = edge_index[0:1, :].expand(active_nodes.size(0), -1)
+            indices = (expanded == active_nodes.view(-1, 1)).int().sum(dim=0).nonzero().flatten()
 
             control_edge_index = edge_index[:, indices]
 
         elif self.control_edges == "dense":
 
-            all_nodes = torch.arange(edge_index.max() + 1)
-            ones = torch.ones_like(all_nodes)
+            num_nodes = edge_index.max() + 1
 
-            # could this be faster? is it slowing things down?
-            control_edge_index = []
-            for node in active_nodes:
-                control_edge_index.append(
-                    torch.stack([ones * node, all_nodes])[:, all_nodes != node]
-                )
-            control_edge_index = torch.cat(control_edge_index, dim=1)
+            # I did this like this to avoid a for loop (over the number of active nodes)
+            # this one actually gives a decent speedup
+            source_nodes = active_nodes.repeat_interleave(num_nodes)
+            dest_nodes = torch.arange(num_nodes).repeat(active_nodes.size(0))
+            edges = torch.stack([source_nodes, dest_nodes])
+            control_edge_index_b = edges[:, (edges[0] != edges[1])]
 
         else:
             raise ValueError("Unrecognized control type, must be adj or dense")
