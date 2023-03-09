@@ -103,7 +103,7 @@ class ControlTransform(BaseTransform):
             control_edge_index = []
             for node in active_nodes:
                 control_edge_index.append(
-                    torch.stack([all_nodes, ones * node])[:, all_nodes != node]
+                    torch.stack([ones * node, all_nodes])[:, all_nodes != node]
                 )
             control_edge_index = torch.cat(control_edge_index, dim=1)
 
