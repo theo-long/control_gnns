@@ -71,10 +71,10 @@ class GCNBlock(nn.Module):
         self.linear = linear
         self.time_inv = time_inv
 
+        # only one layer if time_inv
         num_layers = 1 if self.time_inv else self.depth
 
         self.conv_layers = []
-
         for _ in range(num_layers):
             self.conv_layers.append(GCNConv(feature_dim, feature_dim))
 

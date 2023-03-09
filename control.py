@@ -8,7 +8,7 @@ from torch_geometric.utils import scatter
 
 class ControlGCNConv(nn.Module):
     """
-    wraps a GCNConv layer with asymmetric (in-degree)  normalization
+    wraps a GCNConv layer with asymmetric (in-degree) normalization
     """
 
     def __init__(self, channels):
@@ -20,7 +20,7 @@ class ControlGCNConv(nn.Module):
 
     def _normalize(self, edge_index):
 
-        # get inverse degree
+        # get inverse in-degree
         deg = torch_geometric.utils.degree(edge_index[1])
         deg_inv = deg.pow(-1.0)
         deg_inv.masked_fill_(deg_inv == float("inf"), 0)

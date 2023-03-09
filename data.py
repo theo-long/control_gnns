@@ -67,6 +67,10 @@ class RankingTransform(BaseTransform):
 
 
 class ControlTransform(BaseTransform):
+    """
+    used to identify the edges to 'activate' in control modules
+    applied as transform while dataloading
+    """
     def __init__(self, control_edges: str, metric: str, k: int) -> None:
         super().__init__()
 
@@ -77,6 +81,7 @@ class ControlTransform(BaseTransform):
         self.k = k
 
     def _gen_control_edge_index(self, edge_index, active_nodes):
+        "generates the control_edge_index"
 
         if self.control_edges == "adj":
 
@@ -166,6 +171,9 @@ def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size):
 
 
 class ToyDataset(InMemoryDataset):
+    """
+    a toy dataset used in debug_control.py
+    """
     def __init__(self, transform, pre_transform):
         super().__init__(transform=transform, pre_transform=pre_transform)
 
