@@ -66,6 +66,7 @@ def main():
     parser.add_argument("-n", "--name", required=True)
     parser.add_argument("-e", "--epochs", default=20, type=int)
     parser.add_argument("-m", "--model", required=True)
+    parser.add_argument("--batch_size", default=128, type=int)
 
     parser.add_argument(
         "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
