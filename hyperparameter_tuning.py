@@ -102,9 +102,8 @@ def main():
         args.control_k,
     )
 
-    splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, splits, batch_size=128
+        dataset, args.dataset, args.batch_size
     )
 
     if args.model == "mlp":
@@ -112,7 +111,7 @@ def main():
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
-            dropout_rate=args.dropout,
+            dropout_rate=dropout_rate,
         )
     elif args.model == "gcn":
         model_factory = lambda dropout_rate: GCN(
