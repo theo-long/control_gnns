@@ -117,7 +117,7 @@ class ControlTransform(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
 
-        k = self.num_active(data.x)
+        k = self.num_active(data.x.shape[0])
 
         active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
 
