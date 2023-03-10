@@ -102,7 +102,6 @@ def main():
         args.control_k,
     )
 
-    dataset = get_tu_dataset(args.dataset)
     splits = get_test_val_train_split(args.dataset, seed=0)
     train_loader, val_loader, test_loader = generate_dataloaders(
         dataset, splits, batch_size=128
