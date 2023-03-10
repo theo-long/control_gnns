@@ -27,7 +27,12 @@ def main():
     parser.add_argument(
         "--control_edges", default="adj", type=str, choices=["adj", "dense"]
     )
-    parser.add_argument("--control_metric", default="degree", type=str)
+    parser.add_argument(
+        "--control_metric",
+        default="b_centrality",
+        type=str,
+        choices=["degree", "b_centrality"],
+    )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
 
     parser.add_argument("--hidden_dim", default=128, type=int)
