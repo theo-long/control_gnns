@@ -72,14 +72,14 @@ class ControlTransform(BaseTransform):
     applied as transform while dataloading
     """
 
-    def __init__(self, control_edges: str, metric: str, k: int) -> None:
+    def __init__(self, control_edges: str, metric: str, num_active: Callable) -> None:
         super().__init__()
 
         self.control_edges = control_edges
         self.metric = metric
 
         # TODO replace with callable
-        self.k = k
+        self.num_active = num_active
 
     def _gen_control_edge_index(self, edge_index, active_nodes):
         "generates the control_edge_index"
@@ -89,7 +89,13 @@ class ControlTransform(BaseTransform):
             # I did this like this to avoid a for loop (over the number of active nodes)
             # not sure how much it actually speeds it up
             expanded = edge_index[0:1, :].expand(active_nodes.size(0), -1)
-            indices = (expanded == active_nodes.view(-1, 1)).int().sum(dim=0).nonzero().flatten()
+            indices = (
+                (expanded == active_nodes.view(-1, 1))
+                .int()
+                .sum(dim=0)
+                .nonzero()
+                .flatten()
+            )
 
             control_edge_index = edge_index[:, indices]
 
@@ -102,7 +108,7 @@ class ControlTransform(BaseTransform):
             source_nodes = active_nodes.repeat_interleave(num_nodes)
             dest_nodes = torch.arange(num_nodes).repeat(active_nodes.size(0))
             edges = torch.stack([source_nodes, dest_nodes])
-            control_edge_index_b = edges[:, (edges[0] != edges[1])]
+            control_edge_index = edges[:, (edges[0] != edges[1])]
 
         else:
             raise ValueError("Unrecognized control type, must be adj or dense")
@@ -111,10 +117,9 @@ class ControlTransform(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
 
-        # TODO replace with callable
-        k = self.k
+        k = self.num_active(data.x)
 
-        active_nodes = (data.node_rankings[self.metric] <= self.k).nonzero().flatten()
+        active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
 
         data.control_edge_index = self._gen_control_edge_index(
             data.edge_index, active_nodes
@@ -123,10 +128,12 @@ class ControlTransform(BaseTransform):
         return data
 
 
-def get_tu_dataset(name, control_type, control_edges, control_metric, control_k):
+def get_tu_dataset(
+    name, control_type, control_edges, control_metric, num_active: Callable
+):
 
     if control_type != "null":
-        transform = ControlTransform(control_edges, control_metric, control_k)
+        transform = ControlTransform(control_edges, control_metric, num_active)
     else:
         transform = None
 

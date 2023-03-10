@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 
 import torch
+import numpy as np
 
 logger = logging.getLogger()
 logging.basicConfig(level=logging.INFO)
@@ -41,3 +42,28 @@ def get_device():
         return "cuda"
     else:
         return "cpu"
+
+
+CALLABLE_DICT = {
+    "log": np.log,
+    "sqrt": np.sqrt,
+}
+
+
+def parse_callable_string(callable_str: str):
+    if callable_str.isdigit():
+        return lambda n: int(callable_str)
+    else:
+        try:
+            val = float(callable_str)
+            return lambda n: val * n
+        except ValueError:
+            pass
+
+        try:
+            callable = CALLABLE_DICT[callable_str]
+            return callable
+        except KeyError:
+            raise ValueError(
+                f"Invalid callable string {callable_str} passed to parser."
+            )

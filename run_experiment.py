@@ -9,6 +9,7 @@ from torchmetrics import Accuracy
 from training import train_eval, TrainConfig, BasicLogger
 from data import get_tu_dataset, generate_dataloaders
 from models import GCN, GraphMLP
+from utils import parse_callable_string
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
     parser.add_argument("--control_type", default="null", type=str)
     parser.add_argument("--control_edges", default="adj", type=str)
     parser.add_argument("--control_metric", default="degree", type=str)
-    parser.add_argument("--control_k", default=1, type=int)
+    parser.add_argument("--control_k", default=1, type=parse_callable_string)
 
     parser.add_argument("--hidden_dim", default=64, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
