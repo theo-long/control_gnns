@@ -180,9 +180,9 @@ def get_test_val_train_mask(
     dataset: Union[WikipediaNetwork, Planetoid], split: int = 0
 ):
     return (
-        dataset[0].train_mask[:, split],
-        dataset[0].val_mask[:, split],
-        dataset[0].test_mask[:, split],
+        dataset[0].train_mask[:, split].to(torch.bool),
+        dataset[0].val_mask[:, split].to(torch.bool),
+        dataset[0].test_mask[:, split].to(torch.bool),
     )
 
 
