@@ -150,7 +150,7 @@ def main():
         hyperparameters = dict(wandb.config)
         training_config = TrainConfig(
             lr=hyperparameters.pop("lr"),
-            batch_size=train_loader.batch_size,
+            batch_size=1 if is_node_classifier else train_loader.batch_size,
             epochs=args.epochs,
             weight_decay=hyperparameters.pop("weight_decay"),
             beta1=hyperparameters.pop("beta1"),

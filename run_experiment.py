@@ -54,7 +54,7 @@ def main():
 
     training_config = TrainConfig(
         lr=args.lr,
-        batch_size=args.batch_size,
+        batch_size=1 if is_node_classifier else args.batch_size,
         epochs=args.epochs,
         weight_decay=args.weight_decay,
         beta1=args.beta1,
