@@ -7,7 +7,7 @@ from torch.nn.functional import cross_entropy
 from torchmetrics import Accuracy
 
 from training import train_eval, TrainConfig, BasicLogger
-from data import get_tu_dataset, generate_dataloaders
+from data import get_dataset, generate_dataloaders, get_test_val_train_mask
 from models import GCN, GraphMLP
 from utils import parse_callable_string, get_device
 
@@ -61,7 +61,7 @@ def main():
         beta2=args.beta2,
     )
 
-    dataset = get_tu_dataset(
+    dataset, is_node_classifier = get_dataset(
         args.dataset,
         args.control_type,
         args.control_edges,
@@ -69,9 +69,14 @@ def main():
         args.control_k,
     )
 
-    train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, args.dataset, args.batch_size
-    )
+    if is_node_classifier:
+        train_loader, val_loader, test_loader = dataset, dataset, dataset
+        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+    else:
+        train_loader, val_loader, test_loader = generate_dataloaders(
+            dataset, args.dataset, args.batch_size
+        )
+        train_mask, val_mask, test_mask = None, None, None
 
     if args.model.lower() == "gcn":
 
@@ -84,6 +89,7 @@ def main():
             linear=args.linear,
             time_inv=args.time_inv,
             control_type=args.control_type,
+            is_node_classifier=is_node_classifier,
         )
 
     elif args.model.lower() == "mlp":
@@ -92,6 +98,7 @@ def main():
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
             dropout_rate=args.dropout,
+            is_node_classifier=is_node_classifier,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
@@ -125,6 +132,9 @@ def main():
             loss_function=cross_entropy,
             metric_function=accuracy_function,
             logger=logger,
+            train_mask=train_mask,
+            val_mask=val_mask,
+            test_mask=test_mask,
         )
         stats.append(final_stats)
 

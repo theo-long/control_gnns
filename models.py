@@ -24,8 +24,11 @@ class GCN(nn.Module):
         linear: bool,
         time_inv: bool,
         control_type: str,
+        is_node_classifier: bool = False,
     ):
         super().__init__()
+
+        self.is_node_classifier = is_node_classifier
 
         self.control_type = control_type
 
@@ -53,7 +56,10 @@ class GCN(nn.Module):
         else:
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        x = global_add_pool(x, data.batch)
+        if self.is_node_classifier:
+            x = nn.functional.relu()
+        else:
+            x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)
 
@@ -72,8 +78,11 @@ class GraphMLP(nn.Module):
         output_dim: int,
         hidden_dim: int,
         dropout_rate: float,
+        is_node_classifier: bool = False,
     ):
         super().__init__()
+
+        self.is_node_classifier = bool
 
         self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
@@ -85,7 +94,10 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        x = global_add_pool(x, data.batch)
+        if self.is_node_classifier:
+            x = nn.functional.relu(x)
+        else:
+            x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)
 

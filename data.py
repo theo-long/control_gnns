@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, Union
 import pathlib
 
 from scipy import stats
@@ -9,11 +9,20 @@ import torch
 import torch_geometric
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.transforms import BaseTransform
-from torch_geometric.datasets import TUDataset
+from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
 from torch_geometric.loader import DataLoader
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
+DATASET_DICT = {
+    "PROTEINS": (TUDataset, {"use_node_attr": True}, False),
+    "ENZYMES": (TUDataset, {"use_node_attr": True}, False),
+    "cora": (Planetoid, {"split": "geom-gcn"}, True),
+    "pubmed": (Planetoid, {"split": "geom-gcn"}, True),
+    "citeseer": (Planetoid, {"split": "geom-gcn"}, True),
+    "chameleon": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
+    "squirrel": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
+}
 
 
 class RankingTransform(BaseTransform):
@@ -128,7 +137,7 @@ class ControlTransform(BaseTransform):
         return data
 
 
-def get_tu_dataset(
+def get_dataset(
     name, control_type, control_edges, control_metric, num_active: Callable
 ):
 
@@ -137,20 +146,22 @@ def get_tu_dataset(
     else:
         transform = None
 
-    dataset = TUDataset(
+    dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
+
+    dataset = dataset_class(
         root="./datasets",
         name=name,
-        use_node_attr=True,
         pre_transform=RankingTransform(),
         transform=transform,
+        **dataset_kwargs,
     )
 
-    return dataset
+    return dataset, is_node_classifier
 
 
-def get_test_val_train_split(name, seed: int = 0):
+def get_test_val_train_split(name, split: int = 0):
     # only 10 possible splits
-    seed = int(seed % 10)
+    split = int(split % 10)
     train_file, val_file, test_file = (
         SPLITS_LOC / f"{name}_train.index",
         SPLITS_LOC / f"{name}_val.index",
@@ -160,14 +171,24 @@ def get_test_val_train_split(name, seed: int = 0):
     for fn in [train_file, val_file, test_file]:
         with open(fn) as f:
             lines = f.readlines()
-            index = lines[seed]
+            index = lines[split]
             splits.append([int(i) for i in index.strip().split(",")])
     return splits
 
 
-def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size):
+def get_test_val_train_mask(
+    dataset: Union[WikipediaNetwork, Planetoid], split: int = 0
+):
+    return (
+        dataset.train_mask[:, split],
+        dataset.val_mask[:, split],
+        dataset.test_mask[:, split],
+    )
 
-    splits = get_test_val_train_split(dataset_name, seed=0)
+
+def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
+
+    splits = get_test_val_train_split(dataset_name, split)
 
     loaders = []
     for split in splits:

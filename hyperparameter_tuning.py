@@ -3,7 +3,12 @@ from dataclasses import dataclass, asdict
 from typing import Dict, List, Any, Union
 from training import train_eval, TrainConfig
 from models import GraphMLP, GCN
-from data import generate_dataloaders, get_tu_dataset, get_test_val_train_split
+from data import (
+    generate_dataloaders,
+    get_dataset,
+    get_test_val_train_split,
+    get_test_val_train_mask,
+)
 from control import CONTROL_DICT
 from utils import get_device, parse_callable_string
 
@@ -95,7 +100,7 @@ def main():
     sweep_configuration.name = args.name
     sweep_id = wandb.sweep(sweep=sweep_configuration.to_dict(), project="control_gnns")
 
-    dataset = get_tu_dataset(
+    dataset, is_node_classifier = get_dataset(
         args.dataset,
         args.control_type,
         args.control_edges,
@@ -103,9 +108,14 @@ def main():
         args.control_k,
     )
 
-    train_loader, val_loader, test_loader = generate_dataloaders(
-        dataset, args.dataset, args.batch_size
-    )
+    if is_node_classifier:
+        train_loader, val_loader, test_loader = dataset, dataset, dataset
+        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+    else:
+        train_loader, val_loader, test_loader = generate_dataloaders(
+            dataset, args.dataset, args.batch_size
+        )
+        train_mask, val_mask, test_mask = None, None, None
 
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
@@ -113,6 +123,7 @@ def main():
             output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
             dropout_rate=dropout_rate,
+            is_node_classifier=is_node_classifier,
         )
     elif args.model == "gcn":
         model_factory = lambda dropout_rate: GCN(
@@ -124,6 +135,7 @@ def main():
             linear=args.linear,
             time_inv=args.time_inv,
             control_type=args.control_type,
+            is_node_classifier=is_node_classifier,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
@@ -153,6 +165,9 @@ def main():
             loss_function=cross_entropy,
             metric_function=accuracy_function,
             logger=wandb,
+            train_mask=train_mask,
+            val_mask=val_mask,
+            test_mask=test_mask,
         )
         return final_stats
 
