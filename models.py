@@ -11,7 +11,7 @@ from blocks import MLPBlock, GCNBlock
 class GCN(nn.Module):
     """
     The original GCN architecture from Kipf and Welling, with additional node encoding/decoding MLP layers.
-    + Optional arguments for linearity and time-invarince
+    + Optional arguments for linearity, time-invarince, and control modules
     """
 
     def __init__(
@@ -20,31 +20,30 @@ class GCN(nn.Module):
         output_dim: int,
         hidden_dim: int,
         conv_depth: int,
-        num_encoding_layers: int,
-        num_decoding_layers: int,
-        control_factory: Callable,
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
+        control_type: str,
+        is_node_classifier: bool = False,
     ):
         super().__init__()
 
-        self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
-        )
+        self.is_node_classifier = is_node_classifier
+
+        self.control_type = control_type
+
+        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
         self.gcn_block = GCNBlock(
             hidden_dim,
             conv_depth,
-            control_factory,
             dropout_rate,
             linear,
             time_inv,
+            control_type,
         )
 
-        self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, num_decoding_layers, dropout_rate
-        )
+        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
 
     def forward(self, data):
 
@@ -52,9 +51,15 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
-        x = self.gcn_block(x, data.edge_index, data.control_edge_index)
+        if self.control_type == "null":
+            x = self.gcn_block(x, data.edge_index)
+        else:
+            x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        x = global_add_pool(x, data.batch)
+        if self.is_node_classifier:
+            x = nn.functional.relu(x)
+        else:
+            x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)
 
@@ -72,19 +77,16 @@ class GraphMLP(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dim: int,
-        num_encoding_layers: int,
-        num_decoding_layers: int,
         dropout_rate: float,
+        is_node_classifier: bool = False,
     ):
         super().__init__()
 
-        self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, num_encoding_layers, dropout_rate
-        )
+        self.is_node_classifier = is_node_classifier
 
-        self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, num_decoding_layers, dropout_rate
-        )
+        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
+
+        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
 
     def forward(self, data):
 
@@ -92,7 +94,10 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        x = global_add_pool(x, data.batch)
+        if self.is_node_classifier:
+            x = nn.functional.relu(x)
+        else:
+            x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)
 

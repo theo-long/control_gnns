@@ -2,79 +2,73 @@ import torch
 import torch.nn as nn
 
 import torch_geometric
-from torch_geometric.utils import spmm, scatter
-from utils import get_device
+from torch_geometric.nn import GCNConv, MessagePassing
+from torch_geometric.utils import scatter
 
 
-class NullControl(nn.Module):
+class ControlGCNConv(nn.Module):
     """
-    Just returns 0
-    Keeps GCNBlock code cleaner, by always having control 'active' (less logic)
+    wraps a GCNConv layer with asymmetric (in-degree) normalization
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, channels):
         super().__init__()
 
-        # nn.Module needs a parameter
-        self.parameter = nn.Parameter(torch.empty(0))
+        self.conv = GCNConv(channels, channels, add_self_loops=False, normalize=False)
 
-    def forward(self, x, control_edge_index):
-        return 0
+    def _normalize(self, edge_index):
+
+        # get inverse in-degree
+        deg = torch_geometric.utils.degree(edge_index[1])
+        deg_inv = deg.pow(-1.0)
+        deg_inv.masked_fill_(deg_inv == float("inf"), 0)
+
+        # edge weights are simply the inverse degree
+        # of the receiving node
+        edge_weight = deg_inv[edge_index[1]]
+
+        return edge_index, edge_weight
+
+    def forward(self, x, edge_index):
+        edge_index, edge_weight = self._normalize(edge_index)
+        return self.conv(x, edge_index, edge_weight)
 
 
-class Control(nn.Module):
+class ControlMP(MessagePassing):
     """
-    Base class for control, forward for different strategies (convolutional vs. message-passing)
-    """
-
-    def __init__(self, feature_dim, device=None):
-        super().__init__()
-
-        if device is None:
-            self.device = get_device()
-        else:
-            self.device = device
-
-    def forward(self, x, control_edge_index):
-        raise NotImplementedError
-
-
-class ConvolutionalControl(Control):
-    """
-    Convolutional layer : B H W
+    adapted from practical 2 codebase
     """
 
-    def __init__(self, feature_dim, normalize=True, **kwargs):
-        super().__init__(feature_dim, **kwargs)
-        self.linear = nn.Linear(feature_dim, feature_dim)
+    def __init__(self, channels, aggr="add"):
+        super().__init__(aggr=aggr)
 
-    def normalize(self, control_edge_index):
-        edge_weight = torch.ones(
-            (control_edge_index.size(1),), device=control_edge_index.device
+        self.mlp_msg = nn.Sequential(
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
         )
-        deg = scatter(edge_weight, control_edge_index[1], dim=0, reduce="sum")
-        inv_deg = deg.pow(-1)
-        inv_deg = inv_deg.masked_fill_(inv_deg == float("inf"), 0)
-        edge_weight = inv_deg * edge_weight
 
-        return control_edge_index, edge_weight
+        self.mlp_upd = nn.Sequential(
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
 
-    def forward(self, x, control_edge_index):
-        if self.normalize:
-            control_edge_index, edge_weight = self.normalize(control_edge_index)
+    def forward(self, h, edge_index):
+        out = self.propagate(edge_index, h=h)
+        return out
 
-        x = self.linear(x)
-        return spmm(control_edge_index, x)
+    def message(self, h_i, h_j):
+        return self.mlp_msg(torch.cat([h_i, h_j], dim=-1))
+
+    def update(self, aggr_out, h):
+        return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 
-class MessagePassingControl(Control):
-    """
-    Message passing control layer
-    """
-
-    def __init__(self, feature_dim, normalize=True, **kwargs):
-        super().__init__(feature_dim, **kwargs)
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def forward(self, x, control_edge_index):
-        pass
+CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}
