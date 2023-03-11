@@ -82,7 +82,7 @@ class GraphMLP(nn.Module):
     ):
         super().__init__()
 
-        self.is_node_classifier = bool
+        self.is_node_classifier = is_node_classifier
 
         self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
 
