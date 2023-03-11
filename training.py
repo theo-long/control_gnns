@@ -72,7 +72,7 @@ def evaluate(dataloader, model, device, loss_fct, metrics_fct, mask=None):
             metrics = metrics_fct(y_hat, batch.y)
             loss = loss_fct(y_hat, batch.y)
 
-        if mask is not None is not None:
+        if mask is not None:
             metrics_eval = metrics.data
         else:
             metrics_eval += metrics.data * batch.y.shape[0]
