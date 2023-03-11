@@ -57,7 +57,7 @@ class GCN(nn.Module):
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
         if self.is_node_classifier:
-            x = nn.functional.relu()
+            x = nn.functional.relu(x)
         else:
             x = global_add_pool(x, data.batch)
 
