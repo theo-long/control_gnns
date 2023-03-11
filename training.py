@@ -37,7 +37,7 @@ def train(
         batch.to(device)
         optimiser.zero_grad()
         y_hat = model(batch)
-        if mask:
+        if mask is not None:
             loss = loss_fct(y_hat[mask], batch.y[mask], reduction="mean")
             metric = metric_fct(y_hat[mask], batch.y[mask])
         else:
@@ -65,14 +65,14 @@ def evaluate(dataloader, model, device, loss_fct, metrics_fct, mask=None):
     for batch in dataloader:
         batch.to(device)
         y_hat = model(batch)
-        if mask:
+        if mask is not None:
             metrics = metrics_fct(y_hat[mask], batch.y[mask])
             loss = loss_fct(y_hat[mask], batch.y[mask])
         else:
             metrics = metrics_fct(y_hat, batch.y)
             loss = loss_fct(y_hat, batch.y)
 
-        if mask:
+        if mask is not None is not None:
             metrics_eval = metrics.data
         else:
             metrics_eval += metrics.data * batch.y.shape[0]
