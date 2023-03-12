@@ -2,133 +2,73 @@ import torch
 import torch.nn as nn
 
 import torch_geometric
-from utils import get_device
+from torch_geometric.nn import GCNConv, MessagePassing
+from torch_geometric.utils import scatter
 
 
-class NullControl(nn.Module):
+class ControlGCNConv(nn.Module):
     """
-    Just returns 0
-    Keeps GCNBlock code cleaner, by always having control 'active' (less logic)
+    wraps a GCNConv layer with asymmetric (in-degree) normalization
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, channels):
         super().__init__()
 
-        # nn.Module needs a parameter
-        self.parameter = nn.Parameter(torch.empty(0))
+        self.conv = GCNConv(channels, channels, add_self_loops=False, normalize=False)
 
-    def forward(self, x, edge_index, batch_index, node_rankings):
-        return 0
+    def _normalize(self, edge_index):
+
+        # get inverse in-degree
+        deg = torch_geometric.utils.degree(edge_index[1])
+        deg_inv = deg.pow(-1.0)
+        deg_inv.masked_fill_(deg_inv == float("inf"), 0)
+
+        # edge weights are simply the inverse degree
+        # of the receiving node
+        edge_weight = deg_inv[edge_index[1]]
+
+        return edge_index, edge_weight
+
+    def forward(self, x, edge_index):
+        edge_index, edge_weight = self._normalize(edge_index)
+        return self.conv(x, edge_index, edge_weight)
 
 
-class Control(nn.Module):
+class ControlMP(MessagePassing):
     """
-    Base class for control, override _get_B for different strategies
-    """
-
-    def __init__(self, feature_dim, node_stat, k, normalise, device=None):
-        super().__init__()
-
-        self.node_stat = node_stat
-        self.k = k
-        self.normalise = normalise
-
-        if device is None:
-            self.device = get_device()
-        else:
-            self.device = device
-
-        # linear projection layer
-        self.linear = nn.Linear(feature_dim, feature_dim)
-
-    def _get_B(self):
-        raise NotImplementedError
-
-    def _normalise_B(self, B):
-
-        # get indegrees of B
-        D_B = torch.sparse.sum(B, dim=1).to_dense()
-
-        # get 1/indegrees
-        D_B_inv = D_B**-1
-
-        # mutliply rows by 1/indegrees, convert nans to zero
-        B = torch.nan_to_num(B * D_B_inv.view(-1, 1), nan=0.0)
-
-        return B
-
-    def forward(self, x, edge_index, batch_index, node_rankings):
-
-        x = self.linear(x)
-
-        with torch.no_grad():
-
-            # find nodes with rankings better than k (1 is best)
-            active_nodes = node_rankings[self.node_stat] <= self.k
-
-            # gets B matrix as per child class strategy
-            B = self._get_B(edge_index, batch_index, active_nodes)
-
-            if self.normalise:
-                B = self._normalise_B(B)
-
-        x = B @ x
-
-        return x
-
-
-class AdjacencyControl(Control):
-    """
-    Experiment 1 in our plan
-    Excited node interacts only via exisiting edges (unidirectionally)
+    adapted from practical 2 codebase
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, channels, aggr="add"):
+        super().__init__(aggr=aggr)
 
-    def _get_B(self, edge_index, batch_index, active_nodes):
+        self.mlp_msg = nn.Sequential(
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
 
-        # get (sparse) adjacency
-        A = torch_geometric.utils.to_torch_coo_tensor(edge_index)
+        self.mlp_upd = nn.Sequential(
+            nn.Linear(2 * channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+            nn.Linear(channels, channels),
+            nn.BatchNorm1d(channels),
+            nn.ReLU(),
+        )
 
-        # apply mask row-wise
-        B = A * active_nodes
+    def forward(self, h, edge_index):
+        out = self.propagate(edge_index, h=h)
+        return out
 
-        return B.to(self.device)
+    def message(self, h_i, h_j):
+        return self.mlp_msg(torch.cat([h_i, h_j], dim=-1))
 
-
-class DenseControl(Control):
-    """
-    Experiment 2 in our plan
-    Excited node interacts with all other nodes (in same graph) (unidirectionally)
-    """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def _get_B(self, edge_index, batch_index, active_nodes):
-
-        # TODO process not fully sparse (some ops couldn't do sparse)
-
-        # tile active_nodes into square matrix
-        B = torch.tile(active_nodes, (active_nodes.shape[-1], 1))
-
-        # TODO this is slow (has for loop) maybe possible without?
-        # generate block diagonal mask (prevents edges between graphs in batch)
-        graph_sizes = torch.unique_consecutive(batch_index, return_counts=True)[1]
-        tensor_list = [
-            torch.ones((graph_sizes[i], graph_sizes[i]))
-            for i in range(graph_sizes.shape[0])
-        ]
-        mask = torch.block_diag(*tensor_list).to(self.device)
-
-        # apply mask element wise
-        B = B * mask
-
-        # zero out active node self adjacency
-        torch.diagonal(B).zero_()
-
-        return B.to_sparse_coo().to(self.device)
+    def update(self, aggr_out, h):
+        return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 
-CONTROL_DICT = {"null": NullControl, "adj": AdjacencyControl, "dense": DenseControl}
+CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}

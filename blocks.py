@@ -4,6 +4,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+from control import CONTROL_DICT
 
 
 class MLPBlock(nn.Module):
@@ -16,8 +17,8 @@ class MLPBlock(nn.Module):
         input_dim: int,
         output_dim: int,
         hidden_dim: int,
-        num_layers: int,
         dropout_rate: float,
+        num_layers: int = 2,
     ):
         super().__init__()
 
@@ -58,10 +59,10 @@ class GCNBlock(nn.Module):
         self,
         feature_dim: int,
         depth: int,
-        control_factory: Callable,
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
+        control_type: str,
     ):
         super().__init__()
 
@@ -70,27 +71,44 @@ class GCNBlock(nn.Module):
         self.linear = linear
         self.time_inv = time_inv
 
-        if self.time_inv:
-            self.conv = nn.ModuleList([GCNConv(feature_dim, feature_dim)])
-            self.control = nn.ModuleList([control_factory()])
+        # only one layer if time_inv
+        num_layers = 1 if self.time_inv else self.depth
+
+        self.conv_layers = []
+        for _ in range(num_layers):
+            self.conv_layers.append(GCNConv(feature_dim, feature_dim))
+
+        self.conv_layers = nn.ModuleList(self.conv_layers)
+
+        if control_type != "null":
+
+            control_factory = CONTROL_DICT[control_type]
+
+            self.control_layers = []
+
+            for _ in range(num_layers):
+                self.control_layers.append(control_factory(feature_dim))
+            self.control_layers = nn.ModuleList(self.control_layers)
 
         else:
-            self.conv = nn.ModuleList(
-                [GCNConv(feature_dim, feature_dim) for _ in range(depth)]
-            )
-            self.control = nn.ModuleList([control_factory() for _ in range(depth)])
+            self.control_layers = None
 
-    def forward(self, x, edge_index, batch_index, node_rankings):
+    def forward(self, x, edge_index, control_edge_index=None):
 
-        # handles both time_inv = True and time_inv = False
         for i in range(self.depth):
 
-            conv = self.conv[i % len(self.conv)]
-            control = self.control[i % len(self.control)]
+            # handles both time_inv = True and time_inv = False
+            layer_index = i % len(self.conv_layers)
 
-            x = conv(x, edge_index) + control(x, edge_index, batch_index, node_rankings)
+            conv_out = self.conv_layers[layer_index](x, edge_index)
 
-            # no dropout or (optional) relu after final conv
+            if self.control_layers is not None:
+                control_out = self.control_layers[layer_index](x, control_edge_index)
+                x = conv_out + control_out
+            else:
+                x = conv_out
+
+            # no dropout or relu (if non-linear) after final conv
             if i != (self.depth - 1):
                 if not self.linear:
                     x = F.relu(x)
