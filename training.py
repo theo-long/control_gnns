@@ -62,22 +62,26 @@ def evaluate(dataloader, model, device, loss_fct, metrics_fct, mask=None):
     model.eval()
     metrics_eval = 0
     loss_eval = 0
+    num_examples = 0
     for batch in dataloader:
         batch.to(device)
         y_hat = model(batch)
         if mask is not None:
             metrics = metrics_fct(y_hat[mask], batch.y[mask])
-            loss = loss_fct(y_hat[mask], batch.y[mask])
+            loss = loss_fct(y_hat[mask], batch.y[mask], reduction="sum")
         else:
             metrics = metrics_fct(y_hat, batch.y)
-            loss = loss_fct(y_hat, batch.y)
+            loss = loss_fct(y_hat, batch.y, reduction="sum")
 
-        if mask is not None:
-            metrics_eval = metrics.data
-        else:
-            metrics_eval += metrics.data * batch.y.shape[0]
-            metrics_eval /= len(dataloader.dataset)
+        # Reweight metrics by number of examples in the batch
+        metrics_eval += metrics.data * batch.y.shape[0]
         loss_eval += loss.data
+        num_examples += batch.y.shape[0]
+
+    # Divide by total number of examples in whole dataset
+    loss_eval /= num_examples
+    metrics_eval /= num_examples
+
     return loss_eval, metrics_eval
 
 
