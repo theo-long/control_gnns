@@ -81,14 +81,14 @@ class ControlTransform(BaseTransform):
     applied as transform while dataloading
     """
 
-    def __init__(self, control_edges: str, metric: str, num_active: Callable) -> None:
+    def __init__(self, control_edges: str, metric: str, num_active: Callable, self_adj: bool) -> None:
         super().__init__()
 
         self.control_edges = control_edges
         self.metric = metric
 
-        # TODO replace with callable
         self.num_active = num_active
+        self.self_adj = self_adj
 
     def _gen_control_edge_index(self, edge_index, active_nodes):
         "generates the control_edge_index"
@@ -108,6 +108,13 @@ class ControlTransform(BaseTransform):
 
             control_edge_index = edge_index[:, indices]
 
+            if self.self_adj:
+                # generate self adjacency edges
+                self_adj_edges = active_nodes.repeat(2, 1)
+                
+                # add to the control edge index
+                control_edge_index = torch.cat([control_edge_index, self_adj_edges], dim=1)
+
         elif self.control_edges == "dense":
 
             num_nodes = edge_index.max() + 1
@@ -117,7 +124,13 @@ class ControlTransform(BaseTransform):
             source_nodes = active_nodes.repeat_interleave(num_nodes)
             dest_nodes = torch.arange(num_nodes).repeat(active_nodes.size(0))
             edges = torch.stack([source_nodes, dest_nodes])
-            control_edge_index = edges[:, (edges[0] != edges[1])]
+
+            if not self.self_adj:
+                # remove the self adjacency edges
+                control_edge_index = edges[:, (edges[0] != edges[1])]
+            else:
+                # keep the self adjacency edges
+                control_edge_index = edges
 
         else:
             raise ValueError("Unrecognized control type, must be adj or dense")
@@ -138,11 +151,11 @@ class ControlTransform(BaseTransform):
 
 
 def get_dataset(
-    name, control_type, control_edges, control_metric, num_active: Callable
+    name, control_type, control_edges, control_metric, num_active: Callable, control_self_adj,
 ):
 
     if control_type != "null":
-        transform = ControlTransform(control_edges, control_metric, num_active)
+        transform = ControlTransform(control_edges, control_metric, num_active, control_self_adj)
     else:
         transform = None
 

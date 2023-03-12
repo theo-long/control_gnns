@@ -56,9 +56,7 @@ class GCN(nn.Module):
         else:
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        if self.is_node_classifier:
-            x = nn.functional.relu(x)
-        else:
+        if not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)
@@ -94,9 +92,7 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        if self.is_node_classifier:
-            x = nn.functional.relu(x)
-        else:
+        if not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
 
         x = self.decoder(x)

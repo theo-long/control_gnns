@@ -34,6 +34,7 @@ def main():
         choices=["degree", "b_centrality"],
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
+    parser.add_argument("--control_self_adj", action="store_true")
 
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
@@ -54,7 +55,7 @@ def main():
 
     training_config = TrainConfig(
         lr=args.lr,
-        batch_size=1 if is_node_classifier else args.batch_size,
+        batch_size=args.batch_size,
         epochs=args.epochs,
         weight_decay=args.weight_decay,
         beta1=args.beta1,
@@ -67,7 +68,10 @@ def main():
         args.control_edges,
         args.control_metric,
         args.control_k,
+        args.control_self_adj,
     )
+
+    assert not (is_node_classifier and args.batch_size != 1)
 
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
