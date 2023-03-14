@@ -1,3 +1,5 @@
+import copy
+
 from torch import nn
 from torch import optim
 import torch
@@ -5,8 +7,6 @@ from torch.utils.data import DataLoader
 from dataclasses import dataclass
 from typing import Callable, Optional
 from utils import BasicLogger, Logger, get_device
-
-CHECKPOINT_PATH = "model.pt"
 
 
 @dataclass
@@ -161,12 +161,12 @@ def train_eval(
         if epoch_stats["val_loss"] <= best_val_loss:
             best_val_loss = epoch_stats["val_loss"]
             if restore_best:
-                torch.save(model.state_dict(), CHECKPOINT_PATH)
+                best_model = copy.deepcopy(model)
 
         logger.log(epoch_stats)
 
     if restore_best:
-        model.load_state_dict(torch.load(CHECKPOINT_PATH))
+        model = best_model
 
     test_loss, test_metric = evaluate(
         test_loader, model, device, loss_function, metric_function, test_mask
