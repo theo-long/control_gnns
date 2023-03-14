@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from torch import nn
@@ -19,19 +19,24 @@ class MLPBlock(nn.Module):
         hidden_dim: int,
         dropout_rate: float,
         num_layers: int = 2,
+        norm: Optional[Callable] = None,
     ):
         super().__init__()
 
         assert num_layers >= 2, "an MLP needs at least 2 layers"
 
         self.dropout_rate = dropout_rate
+        if norm is None:
+            norm = nn.Identity
 
         layers = [nn.Linear(input_dim, hidden_dim)]
 
         # only enters loop if num_layers >= 3
         for i in range(num_layers - 2):
+            layers.append(norm(hidden_dim))
             layers.append(nn.Linear(hidden_dim, hidden_dim))
 
+        layers.append(norm(hidden_dim))
         layers.append(nn.Linear(hidden_dim, output_dim))
 
         self.layers = nn.ModuleList(layers)
@@ -63,6 +68,7 @@ class GCNBlock(nn.Module):
         linear: bool,
         time_inv: bool,
         control_type: str,
+        **control_kwargs,
     ):
         super().__init__()
 
@@ -87,7 +93,9 @@ class GCNBlock(nn.Module):
             self.control_layers = []
 
             for _ in range(num_layers):
-                self.control_layers.append(control_factory(feature_dim))
+                self.control_layers.append(
+                    control_factory(feature_dim, **control_kwargs)
+                )
             self.control_layers = nn.ModuleList(self.control_layers)
 
         else:

@@ -15,6 +15,7 @@ from utils import get_device, parse_callable_string
 import wandb
 import torchmetrics
 from torch.nn.functional import cross_entropy
+import torch
 
 
 @dataclass
@@ -83,7 +84,7 @@ def main():
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality"],
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
     parser.add_argument("--control_self_adj", action="store_true")
@@ -93,7 +94,12 @@ def main():
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
 
+    parser.add_argument("-s", "--split", default=0, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
+
+    parser.add_argument(
+        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+    )
 
     args = parser.parse_args()
 
@@ -112,12 +118,23 @@ def main():
 
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
-        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+        train_mask, val_mask, test_mask = get_test_val_train_mask(
+            dataset, split=args.split
+        )
     else:
         train_loader, val_loader, test_loader = generate_dataloaders(
-            dataset, args.dataset, args.batch_size
+            dataset, args.dataset, args.batch_size, split=args.split
         )
         train_mask, val_mask, test_mask = None, None, None
+
+    if args.norm == "batchnorm":
+        norm = lambda channels: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
+    elif args.norm == "layernorm":
+        norm = torch.nn.LayerNorm
+    elif args.norm is None:
+        norm = None
+    else:
+        raise ValueError("Norm must be None, layernorm or batchnorm")
 
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
@@ -126,6 +143,7 @@ def main():
             hidden_dim=args.hidden_dim,
             dropout_rate=dropout_rate,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     elif args.model == "gcn":
         model_factory = lambda dropout_rate: GCN(
@@ -138,6 +156,7 @@ def main():
             time_inv=args.time_inv,
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")

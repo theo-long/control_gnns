@@ -31,7 +31,7 @@ def main():
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality"],
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
     parser.add_argument("--control_self_adj", action="store_true")
@@ -48,10 +48,14 @@ def main():
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
-    args = parser.parse_args()
+    parser.add_argument("-s", "--split", default=0, type=int)
 
-    # TODO TODO sort out when and where to seed
-    torch.random.manual_seed(0)
+    parser.add_argument(
+        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+    )
+    parser.add_argument("--bn_momentum", default=0.1, type=float)
+
+    args = parser.parse_args()
 
     training_config = TrainConfig(
         lr=args.lr,
@@ -71,16 +75,27 @@ def main():
         args.control_self_adj,
     )
 
-    assert not (is_node_classifier and args.batch_size != 1)
-
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
-        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+        train_mask, val_mask, test_mask = get_test_val_train_mask(
+            dataset, split=args.split
+        )
     else:
         train_loader, val_loader, test_loader = generate_dataloaders(
-            dataset, args.dataset, args.batch_size
+            dataset, args.dataset, args.batch_size, split=args.split
         )
         train_mask, val_mask, test_mask = None, None, None
+
+    if args.norm == "batchnorm":
+        norm = lambda channels: torch.nn.BatchNorm1d(
+            channels, momentum=args.bn_momentum
+        )
+    elif args.norm == "layernorm":
+        norm = torch.nn.LayerNorm
+    elif args.norm is None:
+        norm = None
+    else:
+        raise ValueError("Norm must be None, layernorm or batchnorm")
 
     if args.model.lower() == "gcn":
 
@@ -94,6 +109,7 @@ def main():
             time_inv=args.time_inv,
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
 
     elif args.model.lower() == "mlp":
@@ -103,6 +119,7 @@ def main():
             hidden_dim=args.hidden_dim,
             dropout_rate=args.dropout,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
