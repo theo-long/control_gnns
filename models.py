@@ -24,6 +24,7 @@ class GCN(nn.Module):
         time_inv: bool,
         control_type: str,
         is_node_classifier: bool = False,
+        residual: bool = False,
         norm: Optional[Callable] = None,
     ):
         super().__init__()
@@ -43,6 +44,7 @@ class GCN(nn.Module):
             linear,
             time_inv,
             control_type,
+            residual=residual,
             norm=norm,
         )
 

@@ -54,6 +54,7 @@ def main():
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
     parser.add_argument("--bn_momentum", default=0.1, type=float)
+    parser.add_argument("--residual", action="store_true")
 
     args = parser.parse_args()
 
@@ -110,6 +111,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            residual=args.residual,
         )
 
     elif args.model.lower() == "mlp":

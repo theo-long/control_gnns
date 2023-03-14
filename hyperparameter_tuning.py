@@ -100,6 +100,7 @@ def main():
     parser.add_argument(
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
+    parser.add_argument("--residual", action="store_true")
 
     args = parser.parse_args()
 
