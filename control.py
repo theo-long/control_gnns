@@ -75,7 +75,9 @@ class ControlMP(MessagePassing):
 
 
 class StochasticControl(ControlMP):
-    def __init__(self, rate, method, channels, norm=nn.BatchNorm1d, aggr="add"):
+    def __init__(
+        self, channels, rate=0.9, method="edge", norm=nn.BatchNorm1d, aggr="add"
+    ):
         super().__init__(channels, norm, aggr)
         self.rate = rate
         self.method = method
