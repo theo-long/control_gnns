@@ -43,8 +43,8 @@ class GCN(nn.Module):
             dropout_rate,
             linear,
             time_inv,
+            residual,
             control_type,
-            residual=residual,
             norm=norm,
         )
 
