@@ -43,7 +43,7 @@ class ControlMP(MessagePassing):
         super().__init__(aggr=aggr)
 
         self.mlp_msg = nn.Sequential(
-            norm(channels),
+            norm(2 * channels),
             nn.Linear(2 * channels, channels),
             nn.ReLU(),
             norm(channels),
@@ -52,7 +52,7 @@ class ControlMP(MessagePassing):
         )
 
         self.mlp_upd = nn.Sequential(
-            norm(channels),
+            norm(2 * channels),
             nn.Linear(2 * channels, channels),
             nn.ReLU(),
             norm(channels),
