@@ -74,4 +74,23 @@ class ControlMP(MessagePassing):
         return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 
-CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}
+class StochasticControl(ControlMP):
+    def __init__(self, rate, method, channels, norm=nn.BatchNorm1d, aggr="add"):
+        super().__init__(channels, norm, aggr)
+        self.rate = rate
+        self.method = method
+
+    def forward(self, h, edge_index):
+        if self.method == "edge":
+            edge_index, edge_mask = torch_geometric.utils.dropout_edge(
+                edge_index, p=self.rate
+            )
+        if self.method == "path":
+            edge_index, edge_mask = torch_geometric.utils.dropout_path(
+                edge_index, p=self.rate
+            )
+        out = self.propagate(edge_index[edge_mask], h=h)
+        return out
+
+
+CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP, "random": StochasticControl}

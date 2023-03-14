@@ -22,8 +22,15 @@ def main():
     parser.add_argument("--time_inv", action="store_true")
 
     parser.add_argument(
-        "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
+        "--control_type",
+        default="null",
+        type=str,
+        choices=["null", "gcn", "mp", "random"],
     )
+    parser.add_argument(
+        "--random_control_method", default="edge", type=str, choices=["path", "edge"]
+    )
+    parser.add_argument("--random_control_rate", default=0.9, type=float)
     parser.add_argument(
         "--control_edges", default="adj", type=str, choices=["adj", "dense"]
     )
@@ -100,6 +107,14 @@ def main():
 
     if args.model.lower() == "gcn":
 
+        if args.control_type == "random":
+            control_kwargs = {
+                "method": args.random_control_method,
+                "rate": args.random_control_rate,
+            }
+        else:
+            control_kwargs = {}
+
         model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
@@ -112,6 +127,7 @@ def main():
             is_node_classifier=is_node_classifier,
             norm=norm,
             residual=args.residual,
+            **control_kwargs,
         )
 
     elif args.model.lower() == "mlp":

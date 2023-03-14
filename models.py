@@ -26,6 +26,7 @@ class GCN(nn.Module):
         is_node_classifier: bool,
         residual: bool,
         norm: Optional[Callable] = None,
+        **control_kwargs,
     ):
         super().__init__()
 
@@ -46,6 +47,7 @@ class GCN(nn.Module):
             residual,
             control_type,
             norm=norm,
+            **control_kwargs,
         )
 
         self.decoder = MLPBlock(
