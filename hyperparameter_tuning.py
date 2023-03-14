@@ -111,8 +111,9 @@ def main():
     parser.add_argument("--dataset", default="PROTEINS")
 
     parser.add_argument(
-        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+        "--norm", default="layernorm", choices=["none", "batchnorm", "layernorm"]
     )
+    parser.add_argument("--residual", action="store_true")
 
     args = parser.parse_args()
 
@@ -144,10 +145,10 @@ def main():
         norm = lambda channels: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
     elif args.norm == "layernorm":
         norm = torch.nn.LayerNorm
-    elif args.norm is None:
+    elif args.norm == "none":
         norm = None
     else:
-        raise ValueError("Norm must be None, layernorm or batchnorm")
+        raise ValueError("Norm must be none, layernorm or batchnorm")
 
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
@@ -170,6 +171,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            residual=args.residual,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")

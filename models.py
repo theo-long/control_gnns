@@ -23,7 +23,8 @@ class GCN(nn.Module):
         linear: bool,
         time_inv: bool,
         control_type: str,
-        is_node_classifier: bool = False,
+        is_node_classifier: bool,
+        residual: bool,
         norm: Optional[Callable] = None,
     ):
         super().__init__()
@@ -42,6 +43,7 @@ class GCN(nn.Module):
             dropout_rate,
             linear,
             time_inv,
+            residual,
             control_type,
             norm=norm,
         )

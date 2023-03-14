@@ -42,6 +42,9 @@ class ControlMP(MessagePassing):
     def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add"):
         super().__init__(aggr=aggr)
 
+        if norm is None:
+            norm = nn.Identity
+
         self.mlp_msg = nn.Sequential(
             norm(2 * channels),
             nn.Linear(2 * channels, channels),
