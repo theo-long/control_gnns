@@ -48,7 +48,7 @@ def main():
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
-    parser.add_argument("-s", "--seed", default=0, type=int)
+    parser.add_argument("-s", "--split", default=0, type=int)
 
     parser.add_argument(
         "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
@@ -56,9 +56,6 @@ def main():
     parser.add_argument("--bn_momentum", default=0.1, type=float)
 
     args = parser.parse_args()
-
-    # TODO TODO sort out when and where to seed
-    torch.random.manual_seed(0)
 
     training_config = TrainConfig(
         lr=args.lr,
@@ -81,11 +78,11 @@ def main():
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
         train_mask, val_mask, test_mask = get_test_val_train_mask(
-            dataset, split=args.seed
+            dataset, split=args.split
         )
     else:
         train_loader, val_loader, test_loader = generate_dataloaders(
-            dataset, args.dataset, args.batch_size, split=args.seed
+            dataset, args.dataset, args.batch_size, split=args.split
         )
         train_mask, val_mask, test_mask = None, None, None
 
