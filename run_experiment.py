@@ -76,8 +76,6 @@ def main():
         args.control_self_adj,
     )
 
-    assert not (is_node_classifier and args.batch_size != 1)
-
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
         train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
