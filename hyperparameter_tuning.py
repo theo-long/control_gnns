@@ -158,6 +158,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            residual=args.residual,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
