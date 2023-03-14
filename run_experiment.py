@@ -51,7 +51,7 @@ def main():
     parser.add_argument("-s", "--split", default=0, type=int)
 
     parser.add_argument(
-        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+        "--norm", default="layernorm", choices=["none", "batchnorm", "layernorm"]
     )
     parser.add_argument("--bn_momentum", default=0.1, type=float)
     parser.add_argument("--residual", action="store_true")
@@ -93,7 +93,7 @@ def main():
         )
     elif args.norm == "layernorm":
         norm = torch.nn.LayerNorm
-    elif args.norm is None:
+    elif args.norm == "none":
         norm = None
     else:
         raise ValueError("Norm must be None, layernorm or batchnorm")
