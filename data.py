@@ -35,21 +35,27 @@ class RankingTransform(BaseTransform):
         super().__init__()
 
     def _degree(self, data: Data):
-        "wraps nx.degree to return flat tensor"
+        """wraps nx.degree to return flat tensor"""
 
         graph = torch_geometric.utils.to_networkx(data, to_undirected=True)
         degree = nx.degree(graph)
         return torch.tensor(list(degree))[:, 1].flatten()
 
     def _betweenness_centrality(self, data: Data):
-        "wraps nx.betweenness_centrality to return flat tensor"
+        """wraps nx.betweenness_centrality to return flat tensor"""
 
         graph = torch_geometric.utils.to_networkx(data, to_undirected=True)
         between_cent = nx.betweenness_centrality(graph)
         return torch.tensor(list(between_cent.values()))
 
+    def _pagerank_centrality(self, data: Data):
+        """calculates page rank centrality"""
+        graph = torch_geometric.utils.to_networkx(data, to_undirected=True)
+        pr_cent = nx.pagerank(graph)
+        return torch.tensor(list(pr_cent.values()))
+
     def _node_rankings(self, data: Data, stat_func: Callable):
-        "finds node rankings per stat_func"
+        """finds node rankings per stat_func"""
 
         node_stat = stat_func(data).numpy()
 
@@ -66,10 +72,12 @@ class RankingTransform(BaseTransform):
         # adds new fields for node rankings
         degree_rankings = self._node_rankings(data, self._degree)
         between_cent_rankings = self._node_rankings(data, self._betweenness_centrality)
+        pr_rankings = self._node_rankings(data, self._pagerank_centrality)
 
         data.node_rankings = {
             "degree": degree_rankings,
             "b_centrality": between_cent_rankings,
+            "pr_centrality": pr_rankings,
         }
 
         return data
@@ -81,7 +89,9 @@ class ControlTransform(BaseTransform):
     applied as transform while dataloading
     """
 
-    def __init__(self, control_edges: str, metric: str, num_active: Callable, self_adj: bool) -> None:
+    def __init__(
+        self, control_edges: str, metric: str, num_active: Callable, self_adj: bool
+    ) -> None:
         super().__init__()
 
         self.control_edges = control_edges
@@ -111,9 +121,11 @@ class ControlTransform(BaseTransform):
             if self.self_adj:
                 # generate self adjacency edges
                 self_adj_edges = active_nodes.repeat(2, 1)
-                
+
                 # add to the control edge index
-                control_edge_index = torch.cat([control_edge_index, self_adj_edges], dim=1)
+                control_edge_index = torch.cat(
+                    [control_edge_index, self_adj_edges], dim=1
+                )
 
         elif self.control_edges == "dense":
 
@@ -151,11 +163,18 @@ class ControlTransform(BaseTransform):
 
 
 def get_dataset(
-    name, control_type, control_edges, control_metric, num_active: Callable, control_self_adj,
+    name,
+    control_type,
+    control_edges,
+    control_metric,
+    num_active: Callable,
+    control_self_adj,
 ):
 
     if control_type != "null":
-        transform = ControlTransform(control_edges, control_metric, num_active, control_self_adj)
+        transform = ControlTransform(
+            control_edges, control_metric, num_active, control_self_adj
+        )
     else:
         transform = None
 
