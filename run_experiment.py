@@ -48,6 +48,11 @@ def main():
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
+    parser.add_argument(
+        "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
+    )
+    parser.add_argument("--bn_momentum", default=0.1, type=float)
+
     args = parser.parse_args()
 
     # TODO TODO sort out when and where to seed
@@ -82,6 +87,15 @@ def main():
         )
         train_mask, val_mask, test_mask = None, None, None
 
+    if args.norm == "batchnorm":
+        norm = lambda: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
+    elif args.norm == "layernorm":
+        norm = torch.nn.LayerNorm
+    elif args.norm is None:
+        norm = None
+    else:
+        raise ValueError("Norm must be None, layernorm or batchnorm")
+
     if args.model.lower() == "gcn":
 
         model_factory = lambda: GCN(
@@ -94,6 +108,7 @@ def main():
             time_inv=args.time_inv,
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
 
     elif args.model.lower() == "mlp":
@@ -103,6 +118,7 @@ def main():
             hidden_dim=args.hidden_dim,
             dropout_rate=args.dropout,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")

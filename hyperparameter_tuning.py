@@ -15,6 +15,7 @@ from utils import get_device, parse_callable_string
 import wandb
 import torchmetrics
 from torch.nn.functional import cross_entropy
+import torch
 
 
 @dataclass
@@ -95,6 +96,10 @@ def main():
 
     parser.add_argument("--dataset", default="PROTEINS")
 
+    parser.add_argument(
+        "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
+    )
+
     args = parser.parse_args()
 
     sweep_configuration = SWEEPS_DICT[args.model]
@@ -119,6 +124,15 @@ def main():
         )
         train_mask, val_mask, test_mask = None, None, None
 
+    if args.norm == "batchnorm":
+        norm = lambda: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
+    elif args.norm == "layernorm":
+        norm = torch.nn.LayerNorm
+    elif args.norm is None:
+        norm = None
+    else:
+        raise ValueError("Norm must be None, layernorm or batchnorm")
+
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
             input_dim=dataset[0].x.shape[1],
@@ -126,6 +140,7 @@ def main():
             hidden_dim=args.hidden_dim,
             dropout_rate=dropout_rate,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     elif args.model == "gcn":
         model_factory = lambda dropout_rate: GCN(
@@ -138,6 +153,7 @@ def main():
             time_inv=args.time_inv,
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
+            norm=norm,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
