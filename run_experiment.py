@@ -48,6 +48,8 @@ def main():
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
+    parser.add_argument("-s", "--seed", default=0, type=0)
+
     parser.add_argument(
         "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
     )
@@ -78,10 +80,12 @@ def main():
 
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
-        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+        train_mask, val_mask, test_mask = get_test_val_train_mask(
+            dataset, split=args.seed
+        )
     else:
         train_loader, val_loader, test_loader = generate_dataloaders(
-            dataset, args.dataset, args.batch_size
+            dataset, args.dataset, args.batch_size, split=args.seed
         )
         train_mask, val_mask, test_mask = None, None, None
 

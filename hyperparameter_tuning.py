@@ -94,6 +94,7 @@ def main():
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
 
+    parser.add_argument("-s", "--seed", default=0, type=0)
     parser.add_argument("--dataset", default="PROTEINS")
 
     parser.add_argument(
@@ -117,10 +118,12 @@ def main():
 
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
-        train_mask, val_mask, test_mask = get_test_val_train_mask(dataset)
+        train_mask, val_mask, test_mask = get_test_val_train_mask(
+            dataset, split=args.seed
+        )
     else:
         train_loader, val_loader, test_loader = generate_dataloaders(
-            dataset, args.dataset, args.batch_size
+            dataset, args.dataset, args.batch_size, split=args.seed
         )
         train_mask, val_mask, test_mask = None, None, None
 
