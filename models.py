@@ -23,8 +23,8 @@ class GCN(nn.Module):
         linear: bool,
         time_inv: bool,
         control_type: str,
-        is_node_classifier: bool = False,
-        residual: bool = False,
+        is_node_classifier: bool,
+        residual: bool,
         norm: Optional[Callable] = None,
     ):
         super().__init__()
