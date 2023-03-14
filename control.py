@@ -84,14 +84,10 @@ class StochasticControl(ControlMP):
 
     def forward(self, h, edge_index):
         if self.method == "edge":
-            edge_index, edge_mask = torch_geometric.utils.dropout_edge(
-                edge_index, p=self.rate
-            )
+            edge_index, _ = torch_geometric.utils.dropout_edge(edge_index, p=self.rate)
         if self.method == "path":
-            edge_index, edge_mask = torch_geometric.utils.dropout_path(
-                edge_index, p=self.rate
-            )
-        out = self.propagate(edge_index[edge_mask], h=h)
+            edge_index, _ = torch_geometric.utils.dropout_path(edge_index, p=self.rate)
+        out = self.propagate(edge_index, h=h)
         return out
 
 
