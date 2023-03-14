@@ -39,24 +39,24 @@ class ControlMP(MessagePassing):
     adapted from practical 2 codebase
     """
 
-    def __init__(self, channels, aggr="add"):
+    def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add"):
         super().__init__(aggr=aggr)
 
         self.mlp_msg = nn.Sequential(
+            norm(2 * channels),
             nn.Linear(2 * channels, channels),
-            nn.BatchNorm1d(channels),
             nn.ReLU(),
+            norm(channels),
             nn.Linear(channels, channels),
-            nn.BatchNorm1d(channels),
             nn.ReLU(),
         )
 
         self.mlp_upd = nn.Sequential(
+            norm(2 * channels),
             nn.Linear(2 * channels, channels),
-            nn.BatchNorm1d(channels),
             nn.ReLU(),
+            norm(channels),
             nn.Linear(channels, channels),
-            nn.BatchNorm1d(channels),
             nn.ReLU(),
         )
 

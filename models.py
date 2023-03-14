@@ -1,6 +1,5 @@
-from typing import Callable
+from typing import Callable, Optional
 
-import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_geometric.nn import global_add_pool
@@ -25,6 +24,7 @@ class GCN(nn.Module):
         time_inv: bool,
         control_type: str,
         is_node_classifier: bool = False,
+        norm: Optional[Callable] = None,
     ):
         super().__init__()
 
@@ -32,7 +32,9 @@ class GCN(nn.Module):
 
         self.control_type = control_type
 
-        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
+        self.encoder = MLPBlock(
+            input_dim, hidden_dim, hidden_dim, dropout_rate, norm=norm
+        )
 
         self.gcn_block = GCNBlock(
             hidden_dim,
@@ -41,9 +43,12 @@ class GCN(nn.Module):
             linear,
             time_inv,
             control_type,
+            norm=norm,
         )
 
-        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
+        self.decoder = MLPBlock(
+            hidden_dim, output_dim, hidden_dim, dropout_rate, norm=norm
+        )
 
     def forward(self, data):
 
@@ -77,14 +82,15 @@ class GraphMLP(nn.Module):
         hidden_dim: int,
         dropout_rate: float,
         is_node_classifier: bool = False,
+        norm: Optional[Callable] = None,
     ):
         super().__init__()
 
         self.is_node_classifier = is_node_classifier
 
-        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate)
+        self.encoder = MLPBlock(input_dim, hidden_dim, hidden_dim, dropout_rate, norm)
 
-        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate)
+        self.decoder = MLPBlock(hidden_dim, output_dim, hidden_dim, dropout_rate, norm)
 
     def forward(self, data):
 
