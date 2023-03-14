@@ -61,16 +61,29 @@ default_sweep = SweepConfiguration(
 )
 
 
+grid_sweep = SweepConfiguration(
+    method="grid",
+    name="grid",
+    metric={"name": "best_val_loss", "goal": "minimize"},
+    parameters={
+        "lr": DiscreteParameter([1e-5, 1e-4, 1e-3, 1e-2]),
+        "weight_decay": DiscreteParameter([0.0, 1e-7, 1e-6, 1e-5, 1e-4]),
+        "dropout_rate": DiscreteParameter([0.0, 0.2, 0.4]),
+    },
+)
+
 SWEEPS_DICT = {
     "mlp": default_sweep,
     "gcn": default_sweep,
+    "grid": grid_sweep,
 }
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--name", required=True)
-    parser.add_argument("-e", "--epochs", default=20, type=int)
+    parser.add_argument("--sweep_type", required=True, type=str)
+    parser.add_argument("-e", "--epochs", default=100, type=int)
     parser.add_argument("-m", "--model", required=True)
     parser.add_argument("--batch_size", default=128, type=int)
 
@@ -86,7 +99,7 @@ def main():
         type=str,
         choices=["degree", "b_centrality", "pr_centrality"],
     )
-    parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
+    parser.add_argument("--control_k", default="1", type=str)
     parser.add_argument("--control_self_adj", action="store_true")
 
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
@@ -103,7 +116,7 @@ def main():
 
     args = parser.parse_args()
 
-    sweep_configuration = SWEEPS_DICT[args.model]
+    sweep_configuration = SWEEPS_DICT[args.sweep_type]
     sweep_configuration.name = args.name
     sweep_id = wandb.sweep(sweep=sweep_configuration.to_dict(), project="control_gnns")
 
@@ -112,7 +125,7 @@ def main():
         args.control_type,
         args.control_edges,
         args.control_metric,
-        args.control_k,
+        parse_callable_string(args.control_k),
         args.control_self_adj,
     )
 
@@ -168,13 +181,13 @@ def main():
 
     def single_training_run():
         run = wandb.init(project="control_gnns")
+        wandb.log(vars(args))
         hyperparameters = dict(wandb.config)
         training_config = TrainConfig(
             lr=hyperparameters.pop("lr"),
             batch_size=1 if is_node_classifier else train_loader.batch_size,
             epochs=args.epochs,
             weight_decay=hyperparameters.pop("weight_decay"),
-            beta1=hyperparameters.pop("beta1"),
         )
         model = model_factory(**hyperparameters)
         final_stats = train_eval(
@@ -193,7 +206,6 @@ def main():
         return final_stats
 
     wandb.agent(sweep_id=sweep_id, function=single_training_run)
-
 
 if __name__ == "__main__":
     main()
