@@ -29,13 +29,14 @@ class MLPBlock(nn.Module):
         if norm is None:
             norm = nn.Identity
 
-        layers = [norm(input_dim), nn.Linear(input_dim, hidden_dim)]
+        layers = [nn.Linear(input_dim, hidden_dim)]
 
         # only enters loop if num_layers >= 3
         for i in range(num_layers - 2):
             layers.append(norm(hidden_dim))
             layers.append(nn.Linear(hidden_dim, hidden_dim))
 
+        layers.append(norm(hidden_dim))
         layers.append(nn.Linear(hidden_dim, output_dim))
 
         self.layers = nn.ModuleList(layers)
