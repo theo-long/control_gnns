@@ -94,7 +94,7 @@ def main():
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
 
-    parser.add_argument("-s", "--seed", default=0, type=0)
+    parser.add_argument("-s", "--seed", default=0, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
 
     parser.add_argument(

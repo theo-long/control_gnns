@@ -48,7 +48,7 @@ def main():
     parser.add_argument("--batch_size", default=128, type=int)
     parser.add_argument("-d", "--debug", action="store_true")
 
-    parser.add_argument("-s", "--seed", default=0, type=0)
+    parser.add_argument("-s", "--seed", default=0, type=int)
 
     parser.add_argument(
         "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
