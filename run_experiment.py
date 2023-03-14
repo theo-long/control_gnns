@@ -51,7 +51,7 @@ def main():
     parser.add_argument("-s", "--split", default=0, type=int)
 
     parser.add_argument(
-        "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
+        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
     parser.add_argument("--bn_momentum", default=0.1, type=float)
 

@@ -98,7 +98,7 @@ def main():
     parser.add_argument("--dataset", default="PROTEINS")
 
     parser.add_argument(
-        "--norm", default=None, choices=[None, "batchnorm", "layernorm"]
+        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
 
     args = parser.parse_args()
