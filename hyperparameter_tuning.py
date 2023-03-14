@@ -125,7 +125,7 @@ def main():
         train_mask, val_mask, test_mask = None, None, None
 
     if args.norm == "batchnorm":
-        norm = lambda: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
+        norm = lambda channels: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
     elif args.norm == "layernorm":
         norm = torch.nn.LayerNorm
     elif args.norm is None:
