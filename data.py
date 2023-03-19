@@ -100,7 +100,7 @@ class TwoHopTransform(BaseTransform):
             *torch_sparse.eye(data.x.shape[0])
         )
         two_hop_edge_index = to_edge_index(two_hop_adj_matrix)
-        data.two_hop_edge_index = two_hop_edge_index
+        data.two_hop_edge_index = two_hop_edge_index[0]
         return data
 
 
