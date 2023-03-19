@@ -1,6 +1,7 @@
 import math
 from typing import Callable, Any, Optional, Union
 import pathlib
+from utils import to_edge_index
 
 from scipy import stats, sparse
 import networkx as nx
@@ -8,7 +9,7 @@ import networkx as nx
 import torch
 import torch_sparse
 import torch_geometric
-from torch_geometric.utils import to_torch_coo_tensor, to_edge_index
+from torch_geometric.utils import to_torch_coo_tensor
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.transforms import BaseTransform, Compose
 from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
