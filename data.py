@@ -2,13 +2,15 @@ import math
 from typing import Callable, Any, Optional, Union
 import pathlib
 
-from scipy import stats
+from scipy import stats, sparse
 import networkx as nx
 
 import torch
+import torch_sparse
 import torch_geometric
+from torch_geometric.utils import to_torch_coo_tensor, to_edge_index
 from torch_geometric.data import Data, InMemoryDataset
-from torch_geometric.transforms import BaseTransform
+from torch_geometric.transforms import BaseTransform, Compose
 from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
 from torch_geometric.loader import DataLoader
 
@@ -80,6 +82,22 @@ class RankingTransform(BaseTransform):
             "pr_centrality": pr_rankings,
         }
 
+        return data
+
+
+class TwoHopTransform(BaseTransform):
+    """
+    used to generate a two-hop adjacency matrix
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __call__(self, data: Data) -> Data:
+        adj_matrix = to_torch_coo_tensor(data.edge_index)
+        two_hop_adj_matrix = adj_matrix @ adj_matrix - torch_sparse.eye(data.x.shape[0])
+        two_hop_edge_index = to_edge_index(two_hop_adj_matrix)
+        data.two_hop_edge_index = two_hop_edge_index
         return data
 
 
@@ -155,8 +173,13 @@ class ControlTransform(BaseTransform):
 
         active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
 
+        if self.control_edges == "two_hop":
+            base_edge_index = data.two_hop_edge_index
+        else:
+            base_edge_index = data.edge_index
+
         data.control_edge_index = self._gen_control_edge_index(
-            data.edge_index, active_nodes
+            base_edge_index, active_nodes
         )
 
         return data
@@ -183,7 +206,7 @@ def get_dataset(
     dataset = dataset_class(
         root="./datasets",
         name=name,
-        pre_transform=RankingTransform(),
+        pre_transform=Compose([RankingTransform(), TwoHopTransform()]),
         transform=transform,
         **dataset_kwargs,
     )
