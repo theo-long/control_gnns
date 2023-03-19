@@ -124,7 +124,7 @@ class ControlTransform(BaseTransform):
     def _gen_control_edge_index(self, edge_index, active_nodes):
         "generates the control_edge_index"
 
-        if self.control_edges == "adj":
+        if self.control_edges in ["adj", "two_hop"]:
 
             # I did this like this to avoid a for loop (over the number of active nodes)
             # not sure how much it actually speeds it up
