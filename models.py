@@ -38,6 +38,9 @@ class GCN(nn.Module):
             input_dim, hidden_dim, hidden_dim, dropout_rate, norm=norm
         )
 
+        if control_type == "mp":
+            control_kwargs["norm"] = norm
+
         self.gcn_block = GCNBlock(
             hidden_dim,
             conv_depth,
@@ -46,7 +49,6 @@ class GCN(nn.Module):
             time_inv,
             residual,
             control_type,
-            norm=norm if control_type == "mp" else None,
             **control_kwargs,
         )
 
