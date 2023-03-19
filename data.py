@@ -96,7 +96,9 @@ class TwoHopTransform(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         adj_matrix = to_torch_coo_tensor(data.edge_index)
-        two_hop_adj_matrix = adj_matrix @ adj_matrix - torch_sparse.eye(data.x.shape[0])
+        two_hop_adj_matrix = adj_matrix @ adj_matrix - to_torch_coo_tensor(
+            *torch_sparse.eye(data.x.shape[0])
+        )
         two_hop_edge_index = to_edge_index(two_hop_adj_matrix)
         data.two_hop_edge_index = two_hop_edge_index
         return data
