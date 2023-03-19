@@ -46,7 +46,7 @@ class GCN(nn.Module):
             time_inv,
             residual,
             control_type,
-            norm=norm,
+            norm=norm if control_type == "mp" else None,
             **control_kwargs,
         )
 
