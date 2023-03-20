@@ -117,7 +117,7 @@ def main():
 
         model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
-            output_dim=output_dim,
+            output_dim=dataset.num_classes,
             hidden_dim=args.hidden_dim,
             conv_depth=args.conv_depth,
             dropout_rate=args.dropout,
