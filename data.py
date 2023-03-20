@@ -234,9 +234,7 @@ class StochasticBlockModelTransform(BaseTransform):
         # The features are given by a random permutation of the desired community labels
         x = torch.randperm(num_communities)[y]
         x = x[:, None]
-
         x = x.to(torch.float32)
-        y = y.to(torch.float32)
 
         # Generate masks
         train_mask = torch.cat(

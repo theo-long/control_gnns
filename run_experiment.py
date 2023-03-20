@@ -84,10 +84,8 @@ def main():
     )
 
     if args.dataset == "sbm":
-        loss_function = mse_loss
         output_dim = 1
     else:
-        loss_function = cross_entropy
         output_dim = dataset.num_classes
 
     if is_node_classifier:
@@ -175,7 +173,7 @@ def main():
             train_loader,
             val_loader,
             test_loader,
-            loss_function=loss_function,
+            loss_function=cross_entropy,
             metric_function=accuracy_function,
             logger=logger,
             train_mask=train_mask,
