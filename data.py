@@ -231,7 +231,7 @@ class StochasticBlockModelTransform(BaseTransform):
         x = torch.cat(
             [torch.randperm(num_communities)[data.y] for i in range(3)], dim=-1
         )
-        x = x[None, :]
+        x = x[:, None]
 
         # Generate masks
         train_mask = torch.cat(
