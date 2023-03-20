@@ -3,7 +3,7 @@ import wandb
 import pandas as pd
 
 import torch
-from torch.nn.functional import cross_entropy
+from torch.nn.functional import cross_entropy, mse_loss
 from torchmetrics import Accuracy
 
 from training import train_eval, TrainConfig, BasicLogger
@@ -83,6 +83,13 @@ def main():
         args.control_self_adj,
     )
 
+    if dataset == "sbm":
+        loss_function = mse_loss
+        output_dim = 1
+    else:
+        loss_function = cross_entropy
+        output_dim = dataset.num_classes
+
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
         train_mask, val_mask, test_mask = get_test_val_train_mask(
@@ -117,7 +124,7 @@ def main():
 
         model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
-            output_dim=dataset.num_classes,
+            output_dim=output_dim,
             hidden_dim=args.hidden_dim,
             conv_depth=args.conv_depth,
             dropout_rate=args.dropout,
@@ -168,7 +175,7 @@ def main():
             train_loader,
             val_loader,
             test_loader,
-            loss_function=cross_entropy,
+            loss_function=loss_function,
             metric_function=accuracy_function,
             logger=logger,
             train_mask=train_mask,

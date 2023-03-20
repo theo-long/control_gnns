@@ -225,11 +225,20 @@ class StochasticBlockModelTransform(BaseTransform):
         edge_index = torch.cat(
             [data.edge_index + i * num_nodes for i in range(3)], dim=-1
         )
-        y = torch.cat([data.y for i in range(3)], dim=-1)
+        y = torch.cat(
+            [data.y, data.y**2 - data.y, 0.5 * (data.y - 3) ** 3 + data.y**2 - 3],
+            dim=-1,
+        ).to(torch.float32)
 
         # The features are given by a random permutation of the desired community labels
+        rand_perm_y = torch.randperm(num_communities)[data.y]
         x = torch.cat(
-            [torch.randperm(num_communities)[data.y] for i in range(3)], dim=-1
+            [
+                rand_perm_y,
+                rand_perm_y**2 - rand_perm_y,
+                0.5 * (rand_perm_y - 3) ** 3 + rand_perm_y**2 - 3,
+            ],
+            dim=-1,
         )
         x = x[:, None]
         x = x.to(torch.float32)
