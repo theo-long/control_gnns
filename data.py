@@ -13,7 +13,12 @@ import torch_geometric
 from torch_geometric.utils import to_torch_coo_tensor, from_networkx
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.transforms import BaseTransform, Compose
-from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
+from torch_geometric.datasets import (
+    TUDataset,
+    Planetoid,
+    WikipediaNetwork,
+    StochasticBlockModelDataset,
+)
 from torch_geometric.loader import DataLoader
 
 
@@ -26,6 +31,13 @@ DATASET_DICT = {
     "citeseer": (Planetoid, {"split": "geom-gcn"}, True),
     "chameleon": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
     "squirrel": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
+    "sbm": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100, 100, 100, 100, 100, 100],
+            "edge_probs": torch.ones(7, 7) * 0.01 + torch.eye(7) * 0.5,
+        },
+    ),
 }
 
 
@@ -198,6 +210,54 @@ class ControlTransform(BaseTransform):
         return data
 
 
+class StochasticBlockModelTransform(BaseTransform):
+    """Used to generate the StochasticBlockModel dataset"""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __call__(self, data: Any) -> Any:
+        num_nodes = data.y.shape[0]
+        num_communities = data.y.max().item() + 1
+
+        # 3 copies of graph: train, val, test
+        edge_index = torch.cat(
+            [data.edge_index + i * num_nodes for i in range(3)], dim=-1
+        )
+        y = torch.cat([data.y for i in range(3)], dim=-1)
+
+        # The features are given by a random permutation of the desired community labels
+        x = torch.cat(
+            [torch.randperm(num_communities)[data.y] for i in range(3)], dim=-1
+        )
+        x = x[None, :]
+
+        # Generate masks
+        train_mask = torch.cat(
+            [torch.ones(num_nodes), torch.zeros(num_nodes), torch.zeros(num_nodes)]
+        )
+        val_mask = torch.cat(
+            [torch.zeros(num_nodes), torch.ones(num_nodes), torch.zeros(num_nodes)]
+        )
+        test_mask = torch.cat(
+            [torch.zeros(num_nodes), torch.zeros(num_nodes), torch.ones(num_nodes)]
+        )
+
+        # We do this to generate all 10 'splits' (which are the same in this case)
+        train_mask = train_mask[:, None].expand(-1, 10)
+        val_mask = val_mask[:, None].expand(-1, 10)
+        test_mask = test_mask[:, None].expand(-1, 10)
+
+        data.edge_index = edge_index
+        data.y = y
+        data.x = x
+        data.train_mask = train_mask
+        data.val_mask = val_mask
+        data.test_mask = test_mask
+
+        return data
+
+
 def get_dataset(
     name,
     control_type,
@@ -213,6 +273,9 @@ def get_dataset(
         )
     else:
         transform = None
+
+    if name == "sbm":
+        transform = Compose([StochasticBlockModelTransform])
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
 

@@ -20,8 +20,10 @@ from torch_geometric.utils import (
     remove_self_loops,
 )
 
-from torch_geometric.data import Data, InMemoryDataset
+from torch_geometric.data import Data, InMemoryDataset, Dataset
 import torch
+
+from typing import Optional, Callable
 
 
 def get_synthetic_data(num_nodes, num_bridges, dist1, dist2, seed):
