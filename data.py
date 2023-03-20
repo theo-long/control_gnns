@@ -275,15 +275,16 @@ def get_dataset(
     else:
         transform = None
 
+    pre_transforms = [RankingTransform(), TwoHopTransform()]
     if name == "sbm":
-        transform = Compose([StochasticBlockModelTransform])
+        pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
 
     dataset = dataset_class(
         root="./datasets",
         name=name,
-        pre_transform=Compose([RankingTransform(), TwoHopTransform()]),
+        pre_transform=Compose(pre_transforms),
         transform=transform,
         **dataset_kwargs,
     )
