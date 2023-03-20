@@ -83,7 +83,7 @@ def main():
         args.control_self_adj,
     )
 
-    if dataset == "sbm":
+    if args.dataset == "sbm":
         loss_function = mse_loss
         output_dim = 1
     else:
