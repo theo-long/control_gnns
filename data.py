@@ -5,11 +5,12 @@ from utils import to_edge_index
 
 from scipy import stats, sparse
 import networkx as nx
+from GraphRicciCurvature.FormanRicci import FormanRicci
 
 import torch
 import torch_sparse
 import torch_geometric
-from torch_geometric.utils import to_torch_coo_tensor
+from torch_geometric.utils import to_torch_coo_tensor, from_networkx
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.transforms import BaseTransform, Compose
 from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
@@ -57,6 +58,13 @@ class RankingTransform(BaseTransform):
         pr_cent = nx.pagerank(graph)
         return torch.tensor(list(pr_cent.values()))
 
+    def _curvature(self, data: Data):
+        graph = torch_geometric.utils.to_networkx(data, to_undirected=True)
+        forman_curvature = FormanRicci(graph)
+        forman_curvature.compute_ricci_curvature()
+        curvature_data = from_networkx(forman_curvature.G)
+        return curvature_data.formanCurvature * -1.0
+
     def _node_rankings(self, data: Data, stat_func: Callable):
         """finds node rankings per stat_func"""
 
@@ -76,6 +84,7 @@ class RankingTransform(BaseTransform):
         degree_rankings = self._node_rankings(data, self._degree)
         between_cent_rankings = self._node_rankings(data, self._betweenness_centrality)
         pr_rankings = self._node_rankings(data, self._pagerank_centrality)
+        curvature = self._node_rankings(data, self._curvature)
 
         data.node_rankings = {
             "degree": degree_rankings,
