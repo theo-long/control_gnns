@@ -83,11 +83,6 @@ def main():
         args.control_self_adj,
     )
 
-    if args.dataset == "sbm":
-        output_dim = 1
-    else:
-        output_dim = dataset.num_classes
-
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
         train_mask, val_mask, test_mask = get_test_val_train_mask(
