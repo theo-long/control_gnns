@@ -90,6 +90,7 @@ class RankingTransform(BaseTransform):
             "degree": degree_rankings,
             "b_centrality": between_cent_rankings,
             "pr_centrality": pr_rankings,
+            "curvature": curvature,
         }
 
         return data
