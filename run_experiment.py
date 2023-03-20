@@ -38,7 +38,7 @@ def main():
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality", "pr_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality", "curvature"],
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
     parser.add_argument("--control_self_adj", action="store_true")
