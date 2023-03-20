@@ -37,7 +37,7 @@ DATASET_DICT = {
             "block_sizes": [100, 100, 100, 100, 100, 100, 100],
             "edge_probs": torch.ones(7, 7) * 0.01 + torch.eye(7) * 0.5,
         },
-        False,
+        True,
     ),
 }
 
