@@ -100,7 +100,7 @@ def main():
     ).to(device)
 
     if args.split is None:
-        splits = range(10)
+        splits = range(5)
     else:
         splits = args.split
 
@@ -126,7 +126,7 @@ def main():
             "val_metric"])
 
     for lr in [1e-4, 1e-3, 1e-2]:
-        for weight_decay in [0.0, 1e-7, 1e-6, 1e-5]:
+        for weight_decay in [0.0, 1e-6, 1e-5]:
             for dropout_rate in [0.0, 0.1, 0.2]:
 
                 mean_stats = {"best_val_loss": [],
