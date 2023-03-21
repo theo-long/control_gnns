@@ -60,6 +60,8 @@ class ControlMP(MessagePassing):
             nn.ReLU(),
         )
 
+        self.alpha = nn.Parameter(torch.tensor(1.0))
+
     def forward(self, h, edge_index):
         out = self.propagate(edge_index, h=h)
         return out
@@ -68,7 +70,7 @@ class ControlMP(MessagePassing):
         return self.mlp_msg(torch.cat([h_i, h_j], dim=-1))
 
     def update(self, aggr_out, h):
-        return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
+        return self.alpha * self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 
 CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}
