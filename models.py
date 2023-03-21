@@ -71,7 +71,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.decoder = nn.Linear(input_dim, hidden_dim)
+            self.decoder = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, data):
 
