@@ -91,6 +91,7 @@ def main():
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
     parser.add_argument("--control_self_adj", action="store_true")
+    parser.add_argument("--active_nodes", nargs="*", default=None, type=int)
 
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
@@ -120,6 +121,7 @@ def main():
         args.control_metric,
         args.control_k,
         args.control_self_adj,
+        args.active_nodes,
     )
 
     if is_node_classifier:

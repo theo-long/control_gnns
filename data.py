@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Any, Optional, Union
+from typing import Callable, Any, Optional, Union, List
 import pathlib
 from utils import to_edge_index
 
@@ -20,6 +20,48 @@ from torch_geometric.datasets import (
     StochasticBlockModelDataset,
 )
 from torch_geometric.loader import DataLoader
+
+
+class LinearDataset(InMemoryDataset):
+    """
+    A dataset of linearly connected complete graphs
+    """
+
+    def __init__(
+        self, num_nodes, num_parts, transform=None, pre_transform=None, **kwargs
+    ):
+        super().__init__(transform=transform, pre_transform=pre_transform)
+
+        data = self._generate_linear_graph(num_nodes, num_parts)
+        self.data, self.slices = self.collate([data])
+
+    def _generate_linear_graph(self, num_nodes, num_parts):
+
+        complete_graph = torch_geometric.utils.from_networkx(
+            nx.complete_graph(num_nodes)
+        )
+        edge_index = torch.cat(
+            [complete_graph.edge_index + i * num_nodes for i in range(num_parts)],
+            dim=-1,
+        )
+
+        # Add single bridge edge between parts
+        in_bridges = torch.tensor(
+            [
+                [i * num_nodes for i in range(num_parts - 1)],
+                [i * num_nodes for i in range(1, num_parts)],
+            ]
+        )
+        out_bridges = in_bridges[[1, 0]]
+        edge_index = torch.cat([edge_index, in_bridges, out_bridges], -1)
+
+        x = torch.ones((num_nodes * num_parts, 1))
+        y = torch.arange(0, num_parts).repeat_interleave(num_nodes)
+
+        # Data objects do not play nice with direct changes
+        data = torch_geometric.data.Data(x=x, y=y, edge_index=edge_index)
+
+        return data
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
@@ -55,6 +97,9 @@ DATASET_DICT = {
         },
         True,
     ),
+    "linear3": (LinearDataset, {"num_nodes": 25, "num_parts": 3}, True),
+    "linear5": (LinearDataset, {"num_nodes": 25, "num_parts": 5}, True),
+    "linear10": (LinearDataset, {"num_nodes": 25, "num_parts": 10}, True),
 }
 
 
@@ -150,7 +195,12 @@ class ControlTransform(BaseTransform):
     """
 
     def __init__(
-        self, control_edges: str, metric: str, num_active: Callable, self_adj: bool
+        self,
+        control_edges: str,
+        metric: str,
+        num_active: Callable,
+        self_adj: bool,
+        active_nodes: Optional[List] = None,
     ) -> None:
         super().__init__()
 
@@ -159,6 +209,8 @@ class ControlTransform(BaseTransform):
 
         self.num_active = num_active
         self.self_adj = self_adj
+
+        self.active_nodes = active_nodes
 
     def _gen_control_edge_index(self, edge_index, active_nodes):
         "generates the control_edge_index"
@@ -231,7 +283,12 @@ class ControlTransform(BaseTransform):
 
         k = self.num_active(data.x.shape[0])
 
-        active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
+        if self.active_nodes:
+            # explicitly specified nodes
+            active_nodes = torch.tensor(self.active_nodes)
+        else:
+            # otherwise use ranking on metric
+            active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
 
         if self.control_edges == "two_hop":
             base_edge_index = data.two_hop_edge_index
@@ -298,16 +355,17 @@ class StochasticBlockModelTransform(BaseTransform):
 
 def get_dataset(
     name: str,
-    control_type,
-    control_edges,
-    control_metric,
+    control_type: str,
+    control_edges: str,
+    control_metric: Union[str, list],
     num_active: Callable,
     control_self_adj,
+    active_nodes: Optional[List],
 ):
 
     if control_type != "null":
         transform = ControlTransform(
-            control_edges, control_metric, num_active, control_self_adj
+            control_edges, control_metric, num_active, control_self_adj, active_nodes
         )
     else:
         transform = None
