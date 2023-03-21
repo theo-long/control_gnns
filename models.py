@@ -45,7 +45,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.encoder = nn.Identity()
+            self.encoder = nn.Linear(input_dim, hidden_dim)
 
         if control_type == "mp":
             control_kwargs["norm"] = norm
@@ -71,7 +71,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.decoder = nn.Identity()
+            self.decoder = nn.Linear(input_dim, hidden_dim)
 
     def forward(self, data):
 
