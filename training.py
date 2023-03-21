@@ -103,6 +103,7 @@ def train_eval(
     train_mask: Optional[torch.Tensor] = None,
     val_mask: Optional[torch.Tensor] = None,
     test_mask: Optional[torch.Tensor] = None,
+    save_path = None,
 ):
     """Train the model and return final evaluation stats on test data."""
     device = get_device()
@@ -177,6 +178,10 @@ def train_eval(
     test_loss, test_metric = evaluate(
         test_loader, model, device, loss_function, metric_function, test_mask
     )
+
+    if save_path is not None:
+        torch.save(model.state_dict(), save_path)
+
     final_stats = {
         "best_val_loss": best_val_loss,
         "test_loss": test_loss.item(),

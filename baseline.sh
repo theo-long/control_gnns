@@ -12,7 +12,7 @@ do
 	do
 		name="${base_name}_${model}_d${depth}_${dataset}"
 
-		python local_grid.py -n ${name} --model ${model} --conv_depth ${depth} --dataset ${dataset} --control_type "null" &
+		python local_grid.py -n ${name} --model ${model} --conv_depth ${depth} --dataset ${dataset} --control_type "null" --save_models &
 
 	done
 	wait

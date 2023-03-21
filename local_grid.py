@@ -47,6 +47,7 @@ def main():
     parser.add_argument("--conv_depth", default=2, type=int)
     parser.add_argument(
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+    parser.add_argument("--save_models", action="store_true")
     )
 
     args = parser.parse_args()
@@ -161,6 +162,12 @@ def main():
                         epochs=args.epochs,
                         weight_decay=weight_decay
                     )
+
+                    if args.save_models:
+                        save_path=f'models/{args.name}_lr{lr}_wd{weight_decay}_do{dropout_rate}_s{split}.pt'
+                    else:
+                        save_path=None
+
                     model = model_factory(dropout_rate=dropout_rate)
                     run_stats = train_eval(
                         model,
@@ -174,6 +181,7 @@ def main():
                         train_mask=train_mask,
                         val_mask=val_mask,
                         test_mask=test_mask,
+                        save_path=save_path,
                     )
 
                     for key, value in run_stats.items():
