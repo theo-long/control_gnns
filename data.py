@@ -208,7 +208,7 @@ class ControlTransform(BaseTransform):
             num_nodes = edge_index.max() + 1
 
             # Same as above, but only have a dense graph on the active nodes
-            source_nodes = active_nodes.repeat_interleave(active_nodes)
+            source_nodes = active_nodes.repeat_interleave(len(active_nodes))
             dest_nodes = active_nodes.repeat(active_nodes.size(0))
             edges = torch.stack([source_nodes, dest_nodes])
 
