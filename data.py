@@ -31,11 +31,27 @@ DATASET_DICT = {
     "citeseer": (Planetoid, {"split": "geom-gcn"}, True),
     "chameleon": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
     "squirrel": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
-    "sbm": (
+    "sbm7": (
         StochasticBlockModelDataset,
         {
             "block_sizes": [100, 100, 100, 100, 100, 100, 100],
-            "edge_probs": torch.ones(7, 7) * 0.01 + torch.eye(7) * 0.5,
+            "edge_probs": torch.ones(7, 7) * 0.005 + torch.eye(7) * 0.5,
+        },
+        True,
+    ),
+    "sbm2": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100],
+            "edge_probs": torch.ones(2, 2) * 0.005 + torch.eye(2) * 0.5,
+        },
+        True,
+    ),
+    "sbm3": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100],
+            "edge_probs": torch.ones(3, 3) * 0.005 + torch.eye(3) * 0.5,
         },
         True,
     ),
@@ -263,7 +279,7 @@ class StochasticBlockModelTransform(BaseTransform):
 
 
 def get_dataset(
-    name,
+    name: str,
     control_type,
     control_edges,
     control_metric,
@@ -279,7 +295,7 @@ def get_dataset(
         transform = None
 
     pre_transforms = [RankingTransform(), TwoHopTransform()]
-    if name == "sbm":
+    if "sbm" in name:
         pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
