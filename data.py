@@ -58,8 +58,19 @@ class LinearDataset(InMemoryDataset):
         x = torch.ones((num_nodes * num_parts, 1))
         y = torch.arange(0, num_parts).repeat_interleave(num_nodes)
 
-        # Data objects do not play nice with direct changes
-        data = torch_geometric.data.Data(x=x, y=y, edge_index=edge_index)
+        # Generate masks
+        train_mask = torch.ones(num_nodes * num_parts, 10)
+        val_mask = torch.ones(num_nodes * num_parts, 10)
+        test_mask = torch.ones(num_nodes * num_parts, 10)
+
+        data = torch_geometric.data.Data(
+            x=x,
+            y=y,
+            edge_index=edge_index,
+            train_mask=train_mask,
+            test_mask=test_mask,
+            val_mask=val_mask,
+        )
 
         return data
 
