@@ -35,7 +35,7 @@ DATASET_DICT = {
         StochasticBlockModelDataset,
         {
             "block_sizes": [100, 100, 100, 100, 100, 100, 100],
-            "edge_probs": torch.ones(7, 7) * 0.005 + torch.eye(7) * 0.5,
+            "edge_probs": torch.ones(7, 7) * 0.005 + torch.eye(7),
         },
         True,
     ),
@@ -43,15 +43,15 @@ DATASET_DICT = {
         StochasticBlockModelDataset,
         {
             "block_sizes": [100, 100],
-            "edge_probs": torch.ones(2, 2) * 0.005 + torch.eye(2) * 0.5,
+            "edge_probs": torch.ones(2, 2) * 0.005 + torch.eye(2),
         },
         True,
     ),
     "sbm3": (
         StochasticBlockModelDataset,
         {
-            "block_sizes": [100, 100],
-            "edge_probs": torch.ones(3, 3) * 0.005 + torch.eye(3) * 0.5,
+            "block_sizes": [100, 100, 100],
+            "edge_probs": torch.ones(3, 3) * 0.005 + torch.eye(3),
         },
         True,
     ),
