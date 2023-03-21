@@ -97,6 +97,8 @@ def main():
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
 
+    parser.add_argument("--num_mlp_layers", type=int, default=2)
+
     parser.add_argument("-s", "--split", default=0, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
 
@@ -161,6 +163,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            num_mlp_layers=args.num_mlp_layers,
             residual=args.residual,
         )
     else:

@@ -17,6 +17,8 @@ def main():
     parser.add_argument("--dataset", default="PROTEINS")
     parser.add_argument("-n", "--num_runs", default=1, type=int)
 
+    parser.add_argument("--num_mlp_layers", type=int, default=2)
+
     parser.add_argument("--model", required=True, type=str)
     parser.add_argument("--linear", action="store_true")
     parser.add_argument("--time_inv", action="store_true")
@@ -130,6 +132,7 @@ def main():
             is_node_classifier=is_node_classifier,
             norm=norm,
             residual=args.residual,
+            num_mlp_layers=args.num_mlp_layers,
             **control_kwargs,
         )
 

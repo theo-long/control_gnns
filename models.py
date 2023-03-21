@@ -25,6 +25,7 @@ class GCN(nn.Module):
         control_type: str,
         is_node_classifier: bool,
         residual: bool,
+        num_mlp_layers: int,
         norm: Optional[Callable] = None,
         **control_kwargs,
     ):
@@ -34,9 +35,17 @@ class GCN(nn.Module):
 
         self.control_type = control_type
 
-        self.encoder = MLPBlock(
-            input_dim, hidden_dim, hidden_dim, dropout_rate, norm=norm
-        )
+        if num_mlp_layers >= 2:
+            self.encoder = MLPBlock(
+                input_dim,
+                hidden_dim,
+                hidden_dim,
+                dropout_rate,
+                norm=norm,
+                num_layers=num_mlp_layers,
+            )
+        else:
+            self.encoder = nn.Identity()
 
         if control_type == "mp":
             control_kwargs["norm"] = norm
@@ -52,9 +61,17 @@ class GCN(nn.Module):
             **control_kwargs,
         )
 
-        self.decoder = MLPBlock(
-            hidden_dim, output_dim, hidden_dim, dropout_rate, norm=norm
-        )
+        if num_mlp_layers >= 2:
+            self.decoder = MLPBlock(
+                hidden_dim,
+                output_dim,
+                hidden_dim,
+                dropout_rate,
+                norm=norm,
+                num_layers=num_mlp_layers,
+            )
+        else:
+            self.decoder = nn.Identity()
 
     def forward(self, data):
 
