@@ -78,7 +78,10 @@ def main():
         "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
     )
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense", "two_hop"]
+        "--control_edges",
+        default="adj",
+        type=str,
+        choices=["adj", "dense", "two_hop", "dense_subset"],
     )
     parser.add_argument(
         "--control_metric",

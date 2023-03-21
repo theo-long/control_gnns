@@ -32,7 +32,10 @@ def main():
     )
     parser.add_argument("--random_control_rate", default=0.9, type=float)
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense", "two_hop"]
+        "--control_edges",
+        default="adj",
+        type=str,
+        choices=["adj", "dense", "two_hop", "dense_subset"],
     )
     parser.add_argument(
         "--control_metric",

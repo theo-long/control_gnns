@@ -10,7 +10,7 @@ from GraphRicciCurvature.FormanRicci import FormanRicci
 import torch
 import torch_sparse
 import torch_geometric
-from torch_geometric.utils import to_torch_coo_tensor, from_networkx
+from torch_geometric.utils import to_torch_coo_tensor, from_networkx, coalesce
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.transforms import BaseTransform, Compose
 from torch_geometric.datasets import (
@@ -204,8 +204,26 @@ class ControlTransform(BaseTransform):
                 # keep the self adjacency edges
                 control_edge_index = edges
 
+        elif self.control_edges == "dense_subset":
+            num_nodes = edge_index.max() + 1
+
+            # Same as above, but only have a dense graph on the active nodes
+            source_nodes = active_nodes.repeat_interleave(active_nodes)
+            dest_nodes = active_nodes.repeat(active_nodes.size(0))
+            edges = torch.stack([source_nodes, dest_nodes])
+
+            if not self.self_adj:
+                # remove the self adjacency edges
+                control_edge_index = edges[:, (edges[0] != edges[1])]
+            else:
+                # keep the self adjacency edges
+                control_edge_index = edges
+
         else:
             raise ValueError("Unrecognized control type, must be adj or dense")
+
+        # remove duplicated edges
+        control_edge_index = coalesce(control_edge_index)
 
         return control_edge_index
 
