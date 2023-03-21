@@ -47,8 +47,8 @@ def main():
     parser.add_argument("--conv_depth", default=2, type=int)
     parser.add_argument(
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
-    parser.add_argument("--save_models", action="store_true")
     )
+    parser.add_argument("--save_models", action="store_true")
 
     args = parser.parse_args()
 
