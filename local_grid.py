@@ -49,6 +49,7 @@ def main():
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
     parser.add_argument("--save_models", action="store_true")
+    parser.add_argument("--control_init", default=None, type=float)
 
     args = parser.parse_args()
 
@@ -91,6 +92,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            control_init=args.control_init,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
