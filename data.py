@@ -20,59 +20,7 @@ from torch_geometric.datasets import (
     StochasticBlockModelDataset,
 )
 from torch_geometric.loader import DataLoader
-
-
-class LinearDataset(InMemoryDataset):
-    """
-    A dataset of linearly connected complete graphs
-    """
-
-    def __init__(
-        self, num_nodes, num_parts, transform=None, pre_transform=None, **kwargs
-    ):
-        super().__init__(transform=transform, pre_transform=pre_transform)
-
-        data = self._generate_linear_graph(num_nodes, num_parts)
-        self.data, self.slices = self.collate([data])
-
-    def _generate_linear_graph(self, num_nodes, num_parts):
-
-        complete_graph = torch_geometric.utils.from_networkx(
-            nx.complete_graph(num_nodes)
-        )
-        edge_index = torch.cat(
-            [complete_graph.edge_index + i * num_nodes for i in range(num_parts)],
-            dim=-1,
-        )
-
-        # Add single bridge edge between parts
-        in_bridges = torch.tensor(
-            [
-                [i * num_nodes for i in range(num_parts - 1)],
-                [i * num_nodes for i in range(1, num_parts)],
-            ]
-        )
-        out_bridges = in_bridges[[1, 0]]
-        edge_index = torch.cat([edge_index, in_bridges, out_bridges], -1)
-
-        x = torch.ones((num_nodes * num_parts, 1))
-        y = torch.arange(0, num_parts).repeat_interleave(num_nodes)
-
-        # Generate masks
-        train_mask = torch.ones(num_nodes * num_parts, 10)
-        val_mask = torch.ones(num_nodes * num_parts, 10)
-        test_mask = torch.ones(num_nodes * num_parts, 10)
-
-        data = torch_geometric.data.Data(
-            x=x,
-            y=y,
-            edge_index=edge_index,
-            train_mask=train_mask,
-            test_mask=test_mask,
-            val_mask=val_mask,
-        )
-
-        return data
+from synthetic_data import LinearDataset, TreeDataset
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
@@ -111,6 +59,12 @@ DATASET_DICT = {
     "linear3": (LinearDataset, {"num_nodes": 25, "num_parts": 3}, True),
     "linear5": (LinearDataset, {"num_nodes": 25, "num_parts": 5}, True),
     "linear10": (LinearDataset, {"num_nodes": 25, "num_parts": 10}, True),
+    "tree3": (TreeDataset, {"depth": 3}, False),
+    "tree4": (TreeDataset, {"depth": 4}, False),
+    "tree5": (TreeDataset, {"depth": 5}, False),
+    "tree6": (TreeDataset, {"depth": 6}, False),
+    "tree7": (TreeDataset, {"depth": 7}, False),
+    "tree8": (TreeDataset, {"depth": 8}, False),
 }
 
 
@@ -427,7 +381,16 @@ def get_test_val_train_mask(
 
 def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
 
-    splits = get_test_val_train_split(dataset_name, split)
+    if "tree" in dataset_name:
+        train_size = int(len(dataset) * 0.8)
+        test_size = int(len(dataset) * 0.1)
+        splits = [
+            list(range(0, train_size)),
+            list(range(train_size, train_size + test_size)),
+            list(train_size + test_size, len(dataset)),
+        ]
+    else:
+        splits = get_test_val_train_split(dataset_name, split)
 
     loaders = []
     for split in splits:
