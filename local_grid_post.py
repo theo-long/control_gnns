@@ -49,7 +49,8 @@ def main():
         "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
     )
     parser.add_argument("--save_models", action="store_true")
-    parser.add_argument("--freeze_weights", action="store_true")
+    parser.add_argument("--freeze_base", action="store_true")
+    parser.add_argument("--control_init", default=None, type=float)
 
     args = parser.parse_args()
 
@@ -83,6 +84,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            control_init=args.control_init,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
@@ -166,9 +168,10 @@ def main():
                     for fail in failed_loads[0]:
                         assert "control_layer" in fail
 
-                    for n, p in model.named_parameters():
-                        if "control_layer" not in n:
-                            p.requires_grad_(False)
+                    if args.freeze_base:
+                        for n, p in model.named_parameters():
+                            if "control_layer" not in n:
+                                p.requires_grad_(False)
 
                     run_stats = train_eval(
                         model,
@@ -184,13 +187,6 @@ def main():
                         test_mask=test_mask,
                         save_path=save_path,
                     )
-
-                    for n, p in model.named_parameters():
-                        if "control_layer" not in n:
-                            print(p.requires_grad)
-
-                        if "alpha" in n:
-                            print(p)
 
                     for key, value in run_stats.items():
                         mean_stats[key].append(value)

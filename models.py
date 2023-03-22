@@ -25,6 +25,7 @@ class GCN(nn.Module):
         control_type: str,
         is_node_classifier: bool = False,
         norm: Optional[Callable] = None,
+        **control_kwargs,
     ):
         super().__init__()
 
@@ -44,6 +45,7 @@ class GCN(nn.Module):
             time_inv,
             control_type,
             norm=norm,
+            **control_kwargs,
         )
 
         self.decoder = MLPBlock(

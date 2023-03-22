@@ -39,7 +39,7 @@ class ControlMP(MessagePassing):
     adapted from practical 2 codebase
     """
 
-    def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add"):
+    def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add", control_init=None):
         super().__init__(aggr=aggr)
 
         self.mlp_msg = nn.Sequential(
@@ -48,8 +48,12 @@ class ControlMP(MessagePassing):
             nn.ReLU(),
             norm(channels),
             nn.Linear(channels, channels),
-            nn.ReLU(),
         )
+
+        final_norm = norm(channels)
+
+        if control_init is not None:
+            nn.init.constant_(final_norm.weight, control_init)
 
         self.mlp_upd = nn.Sequential(
             norm(2 * channels),
@@ -57,10 +61,8 @@ class ControlMP(MessagePassing):
             nn.ReLU(),
             norm(channels),
             nn.Linear(channels, channels),
-            nn.ReLU(),
+            final_norm,
         )
-
-        self.alpha = nn.Parameter(torch.tensor(1.0))
 
     def forward(self, h, edge_index):
         out = self.propagate(edge_index, h=h)
@@ -70,7 +72,6 @@ class ControlMP(MessagePassing):
         return self.mlp_msg(torch.cat([h_i, h_j], dim=-1))
 
     def update(self, aggr_out, h):
-        return self.alpha * self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
-
+        return self.mlp_upd(torch.cat([h, aggr_out], dim=-1))
 
 CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP}
