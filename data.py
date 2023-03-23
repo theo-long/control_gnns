@@ -144,7 +144,7 @@ class TwoHopTransform(BaseTransform):
         super().__init__()
 
     def __call__(self, data: Data) -> Data:
-        adj_matrix = to_torch_coo_tensor(data.edge_index)
+        adj_matrix = to_torch_coo_tensor(data.edge_index, size=data.x.shape[0])
         two_hop_adj_matrix = adj_matrix @ adj_matrix - to_torch_coo_tensor(
             *torch_sparse.eye(data.x.shape[0])
         )
