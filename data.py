@@ -387,7 +387,7 @@ def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
         splits = [
             list(range(0, train_size)),
             list(range(train_size, train_size + test_size)),
-            list(train_size + test_size, len(dataset)),
+            list(range(train_size + test_size, len(dataset))),
         ]
     else:
         splits = get_test_val_train_split(dataset_name, split)
