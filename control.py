@@ -39,7 +39,7 @@ class ControlMP(MessagePassing):
     adapted from practical 2 codebase
     """
 
-    def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add"):
+    def __init__(self, channels, norm=nn.BatchNorm1d, aggr="add", control_init=None):
         super().__init__(aggr=aggr)
 
         if norm is None:
@@ -51,8 +51,12 @@ class ControlMP(MessagePassing):
             nn.ReLU(),
             norm(channels),
             nn.Linear(channels, channels),
-            nn.ReLU(),
         )
+
+        final_norm = norm(channels)
+
+        if control_init is not None:
+            nn.init.constant_(final_norm.weight, control_init)
 
         self.mlp_upd = nn.Sequential(
             norm(2 * channels),
@@ -60,7 +64,7 @@ class ControlMP(MessagePassing):
             nn.ReLU(),
             norm(channels),
             nn.Linear(channels, channels),
-            nn.ReLU(),
+            final_norm,
         )
 
     def forward(self, h, edge_index):
@@ -92,3 +96,4 @@ class StochasticControl(ControlMP):
 
 
 CONTROL_DICT = {"gcn": ControlGCNConv, "mp": ControlMP, "random": StochasticControl}
+

@@ -1,3 +1,5 @@
+import copy
+
 from torch import nn
 from torch import optim
 import torch
@@ -5,8 +7,6 @@ from torch.utils.data import DataLoader
 from dataclasses import dataclass
 from typing import Callable, Optional
 from utils import BasicLogger, Logger, get_device
-
-CHECKPOINT_PATH = "model.pt"
 
 
 @dataclass
@@ -33,28 +33,32 @@ def train(
 ):
     """Train model for one epoch."""
     model.train()
+    metrics_train = 0
+    loss_train = 0
+    num_examples = 0
     for i, batch in enumerate(dataloader):
         batch.to(device)
         optimiser.zero_grad()
         y_hat = model(batch)
         if mask is not None:
             loss = loss_fct(y_hat[mask], batch.y[mask], reduction="mean")
-            metric = metric_fct(y_hat[mask], batch.y[mask])
+            metrics = metric_fct(y_hat[mask], batch.y[mask])
         else:
             loss = loss_fct(y_hat, batch.y, reduction="mean")
-            metric = metric_fct(y_hat, batch.y)
+            metrics = metric_fct(y_hat, batch.y)
         loss.backward()
         optimiser.step()
-        if (i + 1) % log_interval == 0 and logger is not None:
-            logger.log(
-                {
-                    "epoch": epoch,
-                    "batch": i,
-                    "train_loss": loss.data,
-                    "train_metric": metric.data,
-                }
-            )
-    return
+
+        # Reweight metrics by number of examples in the batch
+        metrics_train += metrics.data * batch.y.shape[0]
+        loss_train += loss.data * batch.y.shape[0]
+        num_examples += batch.y.shape[0]
+
+    # Divide by total number of examples in whole dataset
+    loss_train /= num_examples
+    metrics_train /= num_examples
+
+    return loss_train, metrics_train
 
 
 def evaluate(dataloader, model, device, loss_fct, metrics_fct, mask=None):
@@ -99,6 +103,7 @@ def train_eval(
     train_mask: Optional[torch.Tensor] = None,
     val_mask: Optional[torch.Tensor] = None,
     test_mask: Optional[torch.Tensor] = None,
+    save_path = None,
 ):
     """Train the model and return final evaluation stats on test data."""
     device = get_device()
@@ -121,10 +126,10 @@ def train_eval(
         train_loader, model, device, loss_function, metric_function, test_mask
     )
     epoch_stats = {
-        "initial_train_loss": train_loss,
-        "initial_val_loss": val_loss,
-        "initial_train_metric": train_metric,
-        "initial_val_metric": val_metric,
+        "train_loss": train_loss.item(),
+        "val_loss": val_loss.item(),
+        "train_metric": train_metric.item(),
+        "val_metric": val_metric.item(),
         "epoch": -1,
     }
 
@@ -132,7 +137,7 @@ def train_eval(
 
     best_val_loss = torch.inf
     for epoch in range(training_config.epochs):
-        train(
+        train_loss, train_metric = train(
             train_loader,
             model,
             device,
@@ -153,29 +158,33 @@ def train_eval(
             val_mask,
         )
         epoch_stats = {
-            "val_loss": val_loss,
-            "val_metric": val_metric,
+            "train_loss": train_loss.item(),
+            "val_loss": val_loss.item(),
+            "train_metric": train_metric.item(),
+            "val_metric": val_metric.item(),
             "epoch": epoch,
         }
 
         if epoch_stats["val_loss"] <= best_val_loss:
             best_val_loss = epoch_stats["val_loss"]
             if restore_best:
-                torch.save(model.state_dict(), CHECKPOINT_PATH)
+                best_model = copy.deepcopy(model)
 
         logger.log(epoch_stats)
 
     if restore_best:
-        model.load_state_dict(torch.load(CHECKPOINT_PATH))
+        model = best_model
 
     test_loss, test_metric = evaluate(
         test_loader, model, device, loss_function, metric_function, test_mask
     )
+
+    if save_path is not None:
+        torch.save(model.state_dict(), save_path)
+
     final_stats = {
         "best_val_loss": best_val_loss,
-        "test_loss": test_loss,
-        "test_metric": test_metric,
-        "epoch": epoch,
+        "test_loss": test_loss.item(),
+        "test_metric": test_metric.item(),
     }
-    logger.log(final_stats)
     return final_stats
