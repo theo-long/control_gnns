@@ -334,7 +334,7 @@ def get_dataset(
     if "sbm" in name:
         pre_transforms.append(StochasticBlockModelTransform())
 
-    if "linear" or "tree" or "labelprop" in name:
+    if ("linear" in name) or ("tree" in name) or ("labelprop" in name):
         # synthetic datasets have no pre-transform
         transforms.append(RankingTransform())
     else:
