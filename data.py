@@ -327,17 +327,28 @@ def get_dataset(
     control_self_adj,
     active_nodes: Optional[List],
 ):
+    transforms = []
+    pre_transforms = []
+
+    if "sbm" in name:
+        pre_transforms.append(StochasticBlockModelTransform())
+
+    if "linear" or "tree" in name:
+        # synthetic datasets have no pre-transform
+        transforms.append(RankingTransform())
+    else:
+        pre_transforms.append(RankingTransform())
 
     if control_type != "null":
-        transform = ControlTransform(
-            control_edges, control_metric, num_active, control_self_adj, active_nodes
+        transforms.append(
+            ControlTransform(
+                control_edges,
+                control_metric,
+                num_active,
+                control_self_adj,
+                active_nodes,
+            )
         )
-    else:
-        transform = None
-
-    pre_transforms = [RankingTransform()]
-    if "sbm" in name:
-        pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
 
@@ -345,7 +356,7 @@ def get_dataset(
         root="./datasets",
         name=name,
         pre_transform=Compose(pre_transforms),
-        transform=transform,
+        transform=Compose(transforms),
         **dataset_kwargs,
     )
 
