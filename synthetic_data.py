@@ -249,7 +249,7 @@ class TreeDataset(InMemoryDataset):
 
     def get_dims(self):
         # get input and output dims
-        in_dim = len(self.leaf_indices)
+        in_dim = len(self.leaf_indices) + 1
         out_dim = len(self.leaf_indices)
         return in_dim, out_dim
 
