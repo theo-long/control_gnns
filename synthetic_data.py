@@ -310,6 +310,7 @@ class LinearDataset(InMemoryDataset):
 class LabelPropagationDataset(InMemoryDataset):
     def __init__(
         self,
+        root,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         **kwargs
