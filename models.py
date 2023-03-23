@@ -121,8 +121,12 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        if not self.is_node_classifier:
+        if getattr(data, "out_mask", False):
+            x = x[data.out_mask]
+        elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
+        else:
+            pass
 
         x = self.decoder(x)
 
