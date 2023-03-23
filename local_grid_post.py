@@ -30,13 +30,13 @@ def main():
         "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
     )
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense"]
+        "--control_edges", default="adj", type=str, choices=["adj", "dense_subset"]
     )
     parser.add_argument(
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality", "pr_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality", "curvature"],
     )
     parser.add_argument("--control_k", default="1", type=str)
     parser.add_argument("--control_self_adj", action="store_true")
