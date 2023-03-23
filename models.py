@@ -84,7 +84,7 @@ class GCN(nn.Module):
         else:
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        if getattr(data, "out_mask", False):
+        if getattr(data, "out_mask", None) is not None:
             x = x[data.out_mask]
         elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
@@ -125,7 +125,7 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        if getattr(data, "out_mask", False):
+        if getattr(data, "out_mask", None) is not None:
             x = x[data.out_mask]
         elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
