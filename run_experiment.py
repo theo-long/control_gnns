@@ -8,6 +8,7 @@ from torchmetrics import Accuracy
 
 from training import train_eval, TrainConfig, BasicLogger
 from data import get_dataset, generate_dataloaders, get_test_val_train_mask
+from synthetic_data import TreeDataset
 from models import GCN, GraphMLP
 from utils import parse_callable_string, get_device
 
@@ -90,6 +91,11 @@ def main():
         args.active_nodes,
     )
 
+    if isinstance(dataset, TreeDataset):
+        _, out_dim = dataset.get_dims()
+    else:
+        out_dim = dataset.num_classes
+
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
         train_mask, val_mask, test_mask = get_test_val_train_mask(
@@ -124,7 +130,7 @@ def main():
 
         model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
-            output_dim=dataset.num_classes,
+            output_dim=out_dim,
             hidden_dim=args.hidden_dim,
             conv_depth=args.conv_depth,
             dropout_rate=args.dropout,
@@ -141,7 +147,7 @@ def main():
     elif args.model.lower() == "mlp":
         model_factory = lambda: GraphMLP(
             input_dim=dataset[0].x.shape[1],
-            output_dim=dataset.num_classes,
+            output_dim=out_dim,
             hidden_dim=args.hidden_dim,
             dropout_rate=args.dropout,
             is_node_classifier=is_node_classifier,
@@ -166,9 +172,7 @@ def main():
             logger = BasicLogger()
 
         device = get_device()
-        accuracy_function = Accuracy("multiclass", num_classes=dataset.num_classes).to(
-            device
-        )
+        accuracy_function = Accuracy("multiclass", num_classes=out_dim).to(device)
         model = model_factory()
         final_stats = train_eval(
             model,

@@ -349,10 +349,6 @@ def get_dataset(
         **dataset_kwargs,
     )
 
-    if isinstance(dataset, TreeDataset):
-        _, num_classes = dataset.get_dims()
-        dataset.num_classes = num_classes
-
     return dataset, is_node_classifier
 
 
