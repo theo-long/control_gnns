@@ -335,7 +335,7 @@ def get_dataset(
     else:
         transform = None
 
-    pre_transforms = [RankingTransform(), TwoHopTransform()]
+    pre_transforms = [RankingTransform()]
     if "sbm" in name:
         pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
