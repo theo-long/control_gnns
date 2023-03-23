@@ -311,6 +311,7 @@ class LabelPropagationDataset(InMemoryDataset):
     def __init__(
         self,
         root,
+        name,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         **kwargs
