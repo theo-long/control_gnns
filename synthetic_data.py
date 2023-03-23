@@ -21,6 +21,7 @@ from torch_geometric.utils import (
 )
 
 from torch_geometric.data import Data, InMemoryDataset, Dataset
+from torch_geometric.utils import stochastic_blockmodel_graph
 import torch_geometric
 import torch
 
@@ -154,9 +155,6 @@ class TreeDataset(InMemoryDataset):
         data = self.generate_data()
         self.data, self.slices = self.collate(data)
 
-        dim0, out_dim = self.get_dims()
-        self.num_classes = out_dim
-
     def add_child_edges(self, cur_node, max_node):
         edges = []
         leaf_indices = []
@@ -196,7 +194,7 @@ class TreeDataset(InMemoryDataset):
             root_mask = torch.tensor([True] + [False] * (len(nodes) - 1))
             label = self.label(comb)
             data_list.append(
-                Data(x=nodes, edge_index=edge_index, root_mask=root_mask, y=label)
+                Data(x=nodes, edge_index=edge_index, out_mask=root_mask, y=label)
             )
 
         return data_list
@@ -307,6 +305,43 @@ class LinearDataset(InMemoryDataset):
         )
 
         return data
+
+
+class LabelPropagationDataset(InMemoryDataset):
+    def __init__(
+        self,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        **kwargs
+    ):
+        super().__init__(transform, pre_transform, **kwargs)
+        self.data, self.slices = self.collate(
+            [self._generate_data() for i in range(5000)]
+        )
+
+    def _generate_data(self):
+        block_sizes = [20, 20, 20, 20]
+        edge_probs = torch.tensor(
+            [
+                [0.8, 0.01, 0.0, 0.0],
+                [0.01, 0.8, 0.01, 0.0],
+                [0.0, 0.01, 0.8, 0.01],
+                [0.0, 0.0, 0.01, 0.8],
+            ]
+        )
+        edge_index = stochastic_blockmodel_graph(block_sizes, edge_probs)
+
+        # Need to ensure connectivity
+
+        x = torch.ones(sum(block_sizes), 1)
+        x[0][0] = torch.randint(5, 15)
+        x[-1][0] = torch.randint(-5, -15)
+
+        y = x.clone()
+        y[0][0] = x[-1][0]
+        y[-1][0] = x[0][0]
+
+        return Data(edge_index=edge_index, x=x, y=y)
 
 
 if __name__ == "__main__":
