@@ -3,7 +3,7 @@ import wandb
 import pandas as pd
 
 import torch
-from torch.nn.functional import cross_entropy
+from torch.nn.functional import cross_entropy, mse_loss
 from torchmetrics import Accuracy
 
 from training import train_eval, TrainConfig, BasicLogger
@@ -17,24 +17,37 @@ def main():
     parser.add_argument("--dataset", default="PROTEINS")
     parser.add_argument("-n", "--num_runs", default=1, type=int)
 
+    parser.add_argument("--num_mlp_layers", type=int, default=2)
+
     parser.add_argument("--model", required=True, type=str)
     parser.add_argument("--linear", action="store_true")
     parser.add_argument("--time_inv", action="store_true")
 
     parser.add_argument(
-        "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
+        "--control_type",
+        default="null",
+        type=str,
+        choices=["null", "gcn", "mp", "random"],
     )
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense"]
+        "--random_control_method", default="edge", type=str, choices=["path", "edge"]
+    )
+    parser.add_argument("--random_control_rate", default=0.9, type=float)
+    parser.add_argument(
+        "--control_edges",
+        default="adj",
+        type=str,
+        choices=["adj", "dense", "two_hop", "dense_subset"],
     )
     parser.add_argument(
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality", "pr_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality", "curvature"],
     )
     parser.add_argument("--control_k", default=lambda x: 1, type=parse_callable_string)
     parser.add_argument("--control_self_adj", action="store_true")
+    parser.add_argument("--active_nodes", nargs="*", default=None, type=int)
 
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
@@ -74,6 +87,7 @@ def main():
         args.control_metric,
         args.control_k,
         args.control_self_adj,
+        args.active_nodes,
     )
 
     if is_node_classifier:
@@ -100,6 +114,14 @@ def main():
 
     if args.model.lower() == "gcn":
 
+        if args.control_type == "random":
+            control_kwargs = {
+                "method": args.random_control_method,
+                "rate": args.random_control_rate,
+            }
+        else:
+            control_kwargs = {}
+
         model_factory = lambda: GCN(
             input_dim=dataset[0].x.shape[1],
             output_dim=dataset.num_classes,
@@ -112,6 +134,8 @@ def main():
             is_node_classifier=is_node_classifier,
             norm=norm,
             residual=args.residual,
+            num_mlp_layers=args.num_mlp_layers,
+            **control_kwargs,
         )
 
     elif args.model.lower() == "mlp":

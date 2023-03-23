@@ -91,21 +91,27 @@ def main():
         "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
     )
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense"]
+        "--control_edges",
+        default="adj",
+        type=str,
+        choices=["adj", "dense", "two_hop", "dense_subset"],
     )
     parser.add_argument(
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality", "pr_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality", "curvature"],
     )
     parser.add_argument("--control_k", default="1", type=str)
     parser.add_argument("--control_self_adj", action="store_true")
+    parser.add_argument("--active_nodes", nargs="*", default=None, type=int)
 
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
+
+    parser.add_argument("--num_mlp_layers", type=int, default=2)
 
     parser.add_argument("-s", "--split", default=0, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
@@ -128,6 +134,7 @@ def main():
         args.control_metric,
         parse_callable_string(args.control_k),
         args.control_self_adj,
+        args.active_nodes,
     )
 
     if is_node_classifier:
@@ -171,6 +178,7 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            num_mlp_layers=args.num_mlp_layers,
             residual=args.residual,
         )
     else:
