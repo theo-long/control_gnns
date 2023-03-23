@@ -339,12 +339,10 @@ class LabelPropagationDataset(InMemoryDataset):
         x[0][0] = torch.randint(1, 10, size=(1,)).item()
         x[-1][0] = torch.randint(11, 20, size=(1,)).item()
 
-        y = x.clone()
-        y[0][0] = x[-1][0]
-        y[-1][0] = x[0][0]
-
+        # The goal is to propagate the label at x[-1][0] to the node at x[0][0]
+        y = x[-1][0]
         out_mask = torch.zeros(sum(block_sizes), dtype=torch.bool)
-        out_mask[[0, -1]] = 1
+        out_mask[0] = 1
 
         return Data(edge_index=edge_index, x=x, y=y, out_mask=out_mask)
 
