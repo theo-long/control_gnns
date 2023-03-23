@@ -393,7 +393,7 @@ def get_test_val_train_mask(
 
 def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
 
-    if "tree" in dataset_name:
+    if "tree" or "labelprop" in dataset_name:
         train_size = int(len(dataset) * 0.8)
         test_size = int(len(dataset) * 0.1)
         splits = [
