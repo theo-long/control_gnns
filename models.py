@@ -35,6 +35,7 @@ class GCN(nn.Module):
 
         self.control_type = control_type
 
+        self.num_mlp_layers = num_mlp_layers
         if num_mlp_layers >= 2:
             self.encoder = MLPBlock(
                 input_dim,
@@ -45,7 +46,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.encoder = nn.Linear(input_dim, hidden_dim)
+            self.encoder = nn.Embedding(output_dim, hidden_dim)
 
         if control_type == "mp":
             control_kwargs["norm"] = norm
@@ -78,6 +79,10 @@ class GCN(nn.Module):
         x = data.x
 
         x = self.encoder(x)
+
+        if self.num_mlp_layers < 2:
+            # Sum embeddings
+            x = x.sum(axis=0)
 
         if self.control_type == "null":
             x = self.gcn_block(x, data.edge_index)
