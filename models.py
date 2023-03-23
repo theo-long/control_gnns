@@ -46,7 +46,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.encoder = nn.Embedding(output_dim, hidden_dim)
+            self.encoder = nn.Embedding(input_dim, hidden_dim)
 
         if control_type == "mp":
             control_kwargs["norm"] = norm
