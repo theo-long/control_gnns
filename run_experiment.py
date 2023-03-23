@@ -8,7 +8,7 @@ from torchmetrics import Accuracy
 
 from training import train_eval, TrainConfig, BasicLogger
 from data import get_dataset, generate_dataloaders, get_test_val_train_mask
-from synthetic_data import TreeDataset
+from synthetic_data import TreeDataset, LabelPropagationDataset
 from models import GCN, GraphMLP
 from utils import parse_callable_string, get_device
 
@@ -91,10 +91,11 @@ def main():
         args.active_nodes,
     )
 
-    if isinstance(dataset, TreeDataset):
-        _, out_dim = dataset.get_dims()
+    if isinstance(dataset, TreeDataset) or isinstance(dataset, LabelPropagationDataset):
+        input_dim, out_dim = dataset.get_dims()
     else:
         out_dim = dataset.num_classes
+        input_dim = dataset[0].x.shape[1]
 
     if is_node_classifier:
         train_loader, val_loader, test_loader = dataset, dataset, dataset
@@ -129,7 +130,7 @@ def main():
             control_kwargs = {}
 
         model_factory = lambda: GCN(
-            input_dim=dataset[0].x.shape[1],
+            input_dim=input_dim,
             output_dim=out_dim,
             hidden_dim=args.hidden_dim,
             conv_depth=args.conv_depth,
@@ -146,7 +147,7 @@ def main():
 
     elif args.model.lower() == "mlp":
         model_factory = lambda: GraphMLP(
-            input_dim=dataset[0].x.shape[1],
+            input_dim=input_dim,
             output_dim=out_dim,
             hidden_dim=args.hidden_dim,
             dropout_rate=args.dropout,

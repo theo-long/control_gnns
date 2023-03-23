@@ -346,6 +346,9 @@ class LabelPropagationDataset(InMemoryDataset):
 
         return Data(edge_index=edge_index, x=x, y=y, out_mask=out_mask)
 
+    def get_dims(self):
+        return 21, 21
+
 
 if __name__ == "__main__":
     n = 100
