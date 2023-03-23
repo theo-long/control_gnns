@@ -310,13 +310,11 @@ class LinearDataset(InMemoryDataset):
 class LabelPropagationDataset(InMemoryDataset):
     def __init__(
         self,
-        root,
-        name,
         transform: Optional[Callable] = None,
         pre_transform: Optional[Callable] = None,
         **kwargs
     ):
-        super().__init__(transform, pre_transform, **kwargs)
+        super().__init__(transform=transform, pre_transform=pre_transform, **kwargs)
         self.data, self.slices = self.collate(
             [self._generate_data() for i in range(5000)]
         )
