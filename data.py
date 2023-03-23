@@ -75,8 +75,17 @@ class RankingTransform(BaseTransform):
     NOTE: any changes will not take effect without first deleting datasets/PROTEINS/processed
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, rankings=["degree", "b_centrality", "pr_centrality", "curvature"]
+    ) -> None:
         super().__init__()
+        self.rankings = rankings
+        self.methods_dict = {
+            "degree": self._degree,
+            "b_centrality": self._betweenness_centrality,
+            "pr_centrality": self._pagerank_centrality,
+            "curvature": self._curvature,
+        }
 
     def _degree(self, data: Data):
         """wraps nx.degree to return flat tensor"""
@@ -120,18 +129,14 @@ class RankingTransform(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
 
+        rankings_dict = {}
         # adds new fields for node rankings
-        degree_rankings = self._node_rankings(data, self._degree)
-        between_cent_rankings = self._node_rankings(data, self._betweenness_centrality)
-        pr_rankings = self._node_rankings(data, self._pagerank_centrality)
-        curvature = self._node_rankings(data, self._curvature)
+        for ranking in self.rankings:
+            rankings_dict[ranking] = self._node_rankings(
+                data, self.methods_dict[ranking]
+            )
 
-        data.node_rankings = {
-            "degree": degree_rankings,
-            "b_centrality": between_cent_rankings,
-            "pr_centrality": pr_rankings,
-            "curvature": curvature,
-        }
+        data.node_rankings = rankings_dict
 
         return data
 
@@ -336,7 +341,7 @@ def get_dataset(
 
     if ("linear" in name) or ("tree" in name) or ("labelprop" in name):
         # synthetic datasets have no pre-transform
-        transforms.append(RankingTransform())
+        transforms.append(RankingTransform(rankings=[control_metric]))
     else:
         pre_transforms.append(RankingTransform())
 
