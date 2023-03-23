@@ -314,7 +314,7 @@ class LabelPropagationDataset(InMemoryDataset):
         pre_transform: Optional[Callable] = None,
         **kwargs
     ):
-        super().__init__(transform=transform, pre_transform=pre_transform, **kwargs)
+        super().__init__(transform=transform, pre_transform=pre_transform)
         self.data, self.slices = self.collate(
             [self._generate_data() for i in range(5000)]
         )
