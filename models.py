@@ -84,8 +84,12 @@ class GCN(nn.Module):
         else:
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        if not self.is_node_classifier:
+        if getattr(data, "out_mask", False):
+            x = x[data.out_mask]
+        elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
+        else:
+            pass
 
         x = self.decoder(x)
 
