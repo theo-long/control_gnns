@@ -194,7 +194,7 @@ class TreeDataset(InMemoryDataset):
             root_mask = torch.tensor([True] + [False] * (len(nodes) - 1))
             label = self.label(comb)
             data_list.append(
-                Data(x=nodes, edge_index=edge_index, out_mask=root_mask, y=label)
+                Data(x=nodes, edge_index=edge_index, out_mask=root_mask, y=label - 1)
             )
 
         return data_list
