@@ -323,10 +323,10 @@ class LabelPropagationDataset(InMemoryDataset):
         block_sizes = [20, 20, 20, 20]
         edge_probs = torch.tensor(
             [
-                [0.8, 0.01, 0.0, 0.0],
-                [0.01, 0.8, 0.01, 0.0],
-                [0.0, 0.01, 0.8, 0.01],
-                [0.0, 0.0, 0.01, 0.8],
+                [0.8, 0.05, 0.0, 0.0],
+                [0.05, 0.8, 0.05, 0.0],
+                [0.0, 0.05, 0.8, 0.05],
+                [0.0, 0.0, 0.05, 0.8],
             ]
         )
         edge_index = stochastic_blockmodel_graph(block_sizes, edge_probs)
