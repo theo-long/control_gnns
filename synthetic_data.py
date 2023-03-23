@@ -190,7 +190,7 @@ class TreeDataset(InMemoryDataset):
 
         for comb in self.get_combinations():
             edge_index = self.create_blank_tree(add_self_loops=True)
-            nodes = torch.tensor(self.get_nodes_features(comb), dtype=torch.float32)
+            nodes = torch.tensor(self.get_nodes_features(comb), dtype=torch.long)
             root_mask = torch.tensor([True] + [False] * (len(nodes) - 1))
             label = self.label(comb)
             data_list.append(
@@ -333,15 +333,18 @@ class LabelPropagationDataset(InMemoryDataset):
 
         # Need to ensure connectivity
 
-        x = torch.ones(sum(block_sizes), 1)
-        x[0][0] = torch.randint(5, 15)
-        x[-1][0] = torch.randint(-5, -15)
+        x = torch.zeros(sum(block_sizes), 1)
+        x[0][0] = torch.randint(1, 10)
+        x[-1][0] = torch.randint(11, 20)
 
         y = x.clone()
         y[0][0] = x[-1][0]
         y[-1][0] = x[0][0]
 
-        return Data(edge_index=edge_index, x=x, y=y)
+        out_mask = torch.zeros(sum(block_sizes), dtype=torch.bool)
+        out_mask[[0, -1]] = 1
+
+        return Data(edge_index=edge_index, x=x, y=y, out_mask=out_mask)
 
 
 if __name__ == "__main__":
