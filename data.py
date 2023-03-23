@@ -20,7 +20,7 @@ from torch_geometric.datasets import (
     StochasticBlockModelDataset,
 )
 from torch_geometric.loader import DataLoader
-from synthetic_data import LinearDataset, TreeDataset
+from synthetic_data import LinearDataset, TreeDataset, LabelPropagationDataset
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
@@ -65,6 +65,7 @@ DATASET_DICT = {
     "tree6": (TreeDataset, {"depth": 6}, False),
     "tree7": (TreeDataset, {"depth": 7}, False),
     "tree8": (TreeDataset, {"depth": 8}, False),
+    "labelprop": (LabelPropagationDataset, {}, False),
 }
 
 
