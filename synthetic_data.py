@@ -190,7 +190,7 @@ class TreeDataset(InMemoryDataset):
 
         for comb in self.get_combinations():
             edge_index = self.create_blank_tree(add_self_loops=True)
-            nodes = torch.tensor(self.get_nodes_features(comb), dtype=torch.long)
+            nodes = torch.tensor(self.get_nodes_features(comb), dtype=torch.float32)
             root_mask = torch.tensor([True] + [False] * (len(nodes) - 1))
             label = self.label(comb)
             data_list.append(
@@ -287,7 +287,7 @@ class LinearDataset(InMemoryDataset):
         out_bridges = in_bridges[[1, 0]]
         edge_index = torch.cat([edge_index, in_bridges, out_bridges], -1)
 
-        x = torch.ones((num_nodes * num_parts, 1))
+        x = torch.ones((num_nodes * num_parts, 1)).to(torch.float32)
         y = torch.arange(0, num_parts).repeat_interleave(num_nodes)
 
         # Generate masks
