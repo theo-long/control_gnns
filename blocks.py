@@ -67,6 +67,7 @@ class GCNBlock(nn.Module):
         dropout_rate: float,
         linear: bool,
         time_inv: bool,
+        residual: bool,
         control_type: str,
         **control_kwargs,
     ):
@@ -76,6 +77,7 @@ class GCNBlock(nn.Module):
         self.dropout_rate = dropout_rate
         self.linear = linear
         self.time_inv = time_inv
+        self.residual = residual
 
         # only one layer if time_inv
         num_layers = 1 if self.time_inv else self.depth
@@ -112,9 +114,14 @@ class GCNBlock(nn.Module):
 
             if self.control_layers is not None:
                 control_out = self.control_layers[layer_index](x, control_edge_index)
-                x = conv_out + control_out
+                out = conv_out + control_out
             else:
-                x = conv_out
+                out = conv_out
+
+            if self.residual:
+                x = x + out
+            else:
+                x = out
 
             # no dropout or relu (if non-linear) after final conv
             if i != (self.depth - 1):

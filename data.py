@@ -1,18 +1,26 @@
 import math
-from typing import Callable, Any, Optional, Union
+from typing import Callable, Any, Optional, Union, List
 import pathlib
+from utils import to_edge_index
 
-from scipy import stats
+from scipy import stats, sparse
 import networkx as nx
 from GraphRicciCurvature.FormanRicci import FormanRicci
 
 import torch
+import torch_sparse
 import torch_geometric
 from torch_geometric.utils import to_torch_coo_tensor, from_networkx, coalesce
 from torch_geometric.data import Data, InMemoryDataset
-from torch_geometric.transforms import BaseTransform
-from torch_geometric.datasets import TUDataset, Planetoid, WikipediaNetwork
+from torch_geometric.transforms import BaseTransform, Compose
+from torch_geometric.datasets import (
+    TUDataset,
+    Planetoid,
+    WikipediaNetwork,
+    StochasticBlockModelDataset,
+)
 from torch_geometric.loader import DataLoader
+from synthetic_data import LinearDataset, TreeDataset
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
@@ -24,6 +32,39 @@ DATASET_DICT = {
     "citeseer": (Planetoid, {"split": "geom-gcn"}, True),
     "chameleon": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
     "squirrel": (WikipediaNetwork, {"geom_gcn_preprocess": True}, True),
+    "sbm7": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100, 100, 100, 100, 100, 100],
+            "edge_probs": torch.ones(7, 7) * 0.005 + torch.eye(7) * 0.995,
+        },
+        True,
+    ),
+    "sbm2": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100],
+            "edge_probs": torch.ones(2, 2) * 0.005 + torch.eye(2) * 0.995,
+        },
+        True,
+    ),
+    "sbm3": (
+        StochasticBlockModelDataset,
+        {
+            "block_sizes": [100, 100, 100],
+            "edge_probs": torch.ones(3, 3) * 0.005 + torch.eye(3) * 0.995,
+        },
+        True,
+    ),
+    "linear3": (LinearDataset, {"num_nodes": 25, "num_parts": 3}, True),
+    "linear5": (LinearDataset, {"num_nodes": 25, "num_parts": 5}, True),
+    "linear10": (LinearDataset, {"num_nodes": 25, "num_parts": 10}, True),
+    "tree3": (TreeDataset, {"depth": 3}, False),
+    "tree4": (TreeDataset, {"depth": 4}, False),
+    "tree5": (TreeDataset, {"depth": 5}, False),
+    "tree6": (TreeDataset, {"depth": 6}, False),
+    "tree7": (TreeDataset, {"depth": 7}, False),
+    "tree8": (TreeDataset, {"depth": 8}, False),
 }
 
 
@@ -94,6 +135,24 @@ class RankingTransform(BaseTransform):
         return data
 
 
+class TwoHopTransform(BaseTransform):
+    """
+    used to generate a two-hop adjacency matrix
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __call__(self, data: Data) -> Data:
+        adj_matrix = to_torch_coo_tensor(data.edge_index, size=data.x.shape[0])
+        two_hop_adj_matrix = adj_matrix @ adj_matrix - to_torch_coo_tensor(
+            *torch_sparse.eye(data.x.shape[0])
+        )
+        two_hop_edge_index = to_edge_index(two_hop_adj_matrix)
+        data.two_hop_edge_index = two_hop_edge_index[0]
+        return data
+
+
 class ControlTransform(BaseTransform):
     """
     used to identify the edges to 'activate' in control modules
@@ -101,7 +160,12 @@ class ControlTransform(BaseTransform):
     """
 
     def __init__(
-        self, control_edges: str, metric: str, num_active: Callable, self_adj: bool
+        self,
+        control_edges: str,
+        metric: str,
+        num_active: Callable,
+        self_adj: bool,
+        active_nodes: Optional[List] = None,
     ) -> None:
         super().__init__()
 
@@ -111,10 +175,12 @@ class ControlTransform(BaseTransform):
         self.num_active = num_active
         self.self_adj = self_adj
 
+        self.active_nodes = active_nodes
+
     def _gen_control_edge_index(self, edge_index, active_nodes):
         "generates the control_edge_index"
 
-        if self.control_edges == "adj":
+        if self.control_edges in ["adj", "two_hop"]:
 
             # I did this like this to avoid a for loop (over the number of active nodes)
             # not sure how much it actually speeds it up
@@ -182,37 +248,103 @@ class ControlTransform(BaseTransform):
 
         k = self.num_active(data.x.shape[0])
 
-        active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
+        if self.active_nodes:
+            # explicitly specified nodes
+            active_nodes = torch.tensor(self.active_nodes)
+        else:
+            # otherwise use ranking on metric
+            active_nodes = (data.node_rankings[self.metric] <= k).nonzero().flatten()
+
+        if self.control_edges == "two_hop":
+            base_edge_index = data.two_hop_edge_index
+        else:
+            base_edge_index = data.edge_index
 
         data.control_edge_index = self._gen_control_edge_index(
-            data.edge_index, active_nodes
+            base_edge_index, active_nodes
         )
 
         return data
 
 
+class StochasticBlockModelTransform(BaseTransform):
+    """Used to generate the StochasticBlockModel dataset"""
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def __call__(self, data: Any) -> Any:
+        num_nodes = data.y.shape[0]
+        num_communities = data.y.max().item() + 1
+
+        # 3 copies of graph: train, val, test
+        edge_index = torch.cat(
+            [data.edge_index + i * num_nodes for i in range(3)], dim=-1
+        )
+        # We renumber the communities in train val test to check generalization
+        y = torch.cat(
+            [torch.randperm(num_communities)[data.y] for i in range(3)],
+            dim=-1,
+        )
+
+        # The features are given by a random permutation of the desired community labels
+        x = torch.randperm(num_communities)[y]
+        x = x[:, None]
+        x = x.to(torch.float32)
+
+        # Generate masks
+        train_mask = torch.cat(
+            [torch.ones(num_nodes), torch.zeros(num_nodes), torch.zeros(num_nodes)]
+        )
+        val_mask = torch.cat(
+            [torch.zeros(num_nodes), torch.ones(num_nodes), torch.zeros(num_nodes)]
+        )
+        test_mask = torch.cat(
+            [torch.zeros(num_nodes), torch.zeros(num_nodes), torch.ones(num_nodes)]
+        )
+
+        # We do this to generate all 10 'splits' (which are the same in this case)
+        train_mask = train_mask[:, None].expand(-1, 10)
+        val_mask = val_mask[:, None].expand(-1, 10)
+        test_mask = test_mask[:, None].expand(-1, 10)
+
+        data.edge_index = edge_index
+        data.y = y
+        data.x = x
+        data.train_mask = train_mask
+        data.val_mask = val_mask
+        data.test_mask = test_mask
+
+        return data
+
+
 def get_dataset(
-    name,
-    control_type,
-    control_edges,
-    control_metric,
+    name: str,
+    control_type: str,
+    control_edges: str,
+    control_metric: Union[str, list],
     num_active: Callable,
     control_self_adj,
+    active_nodes: Optional[List],
 ):
 
     if control_type != "null":
         transform = ControlTransform(
-            control_edges, control_metric, num_active, control_self_adj
+            control_edges, control_metric, num_active, control_self_adj, active_nodes
         )
     else:
         transform = None
+
+    pre_transforms = [RankingTransform()]
+    if "sbm" in name:
+        pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
 
     dataset = dataset_class(
         root="./datasets",
         name=name,
-        pre_transform=RankingTransform(),
+        pre_transform=Compose(pre_transforms),
         transform=transform,
         **dataset_kwargs,
     )
@@ -249,7 +381,16 @@ def get_test_val_train_mask(
 
 def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
 
-    splits = get_test_val_train_split(dataset_name, split)
+    if "tree" in dataset_name:
+        train_size = int(len(dataset) * 0.8)
+        test_size = int(len(dataset) * 0.1)
+        splits = [
+            list(range(0, train_size)),
+            list(range(train_size, train_size + test_size)),
+            list(train_size + test_size, len(dataset)),
+        ]
+    else:
+        splits = get_test_val_train_split(dataset_name, split)
 
     loaders = []
     for split in splits:

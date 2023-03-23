@@ -91,28 +91,35 @@ def main():
         "--control_type", default="null", type=str, choices=["null", "gcn", "mp"]
     )
     parser.add_argument(
-        "--control_edges", default="adj", type=str, choices=["adj", "dense"]
+        "--control_edges",
+        default="adj",
+        type=str,
+        choices=["adj", "dense", "two_hop", "dense_subset"],
     )
     parser.add_argument(
         "--control_metric",
         default="b_centrality",
         type=str,
-        choices=["degree", "b_centrality", "pr_centrality"],
+        choices=["degree", "b_centrality", "pr_centrality", "curvature"],
     )
     parser.add_argument("--control_k", default="1", type=str)
     parser.add_argument("--control_self_adj", action="store_true")
+    parser.add_argument("--active_nodes", nargs="*", default=None, type=int)
 
     parser.add_argument("-t", "--time_inv", action="store_true", default=False)
     parser.add_argument("-l", "--linear", action="store_true", default=False)
     parser.add_argument("--hidden_dim", default=128, type=int)
     parser.add_argument("--conv_depth", default=2, type=int)
 
+    parser.add_argument("--num_mlp_layers", type=int, default=2)
+
     parser.add_argument("-s", "--split", default=0, type=int)
     parser.add_argument("--dataset", default="PROTEINS")
 
     parser.add_argument(
-        "--norm", default="layernorm", choices=[None, "batchnorm", "layernorm"]
+        "--norm", default="layernorm", choices=["none", "batchnorm", "layernorm"]
     )
+    parser.add_argument("--residual", action="store_true")
 
     args = parser.parse_args()
 
@@ -127,6 +134,7 @@ def main():
         args.control_metric,
         parse_callable_string(args.control_k),
         args.control_self_adj,
+        args.active_nodes,
     )
 
     if is_node_classifier:
@@ -144,10 +152,10 @@ def main():
         norm = lambda channels: torch.nn.BatchNorm1d(momentum=args.bn_momentum)
     elif args.norm == "layernorm":
         norm = torch.nn.LayerNorm
-    elif args.norm is None:
+    elif args.norm == "none":
         norm = None
     else:
-        raise ValueError("Norm must be None, layernorm or batchnorm")
+        raise ValueError("Norm must be none, layernorm or batchnorm")
 
     if args.model == "mlp":
         model_factory = lambda dropout_rate: GraphMLP(
@@ -170,6 +178,8 @@ def main():
             control_type=args.control_type,
             is_node_classifier=is_node_classifier,
             norm=norm,
+            num_mlp_layers=args.num_mlp_layers,
+            residual=args.residual,
         )
     else:
         raise ValueError(f"Model name {args.model} not recognized")
