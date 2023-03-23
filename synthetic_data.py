@@ -336,8 +336,8 @@ class LabelPropagationDataset(InMemoryDataset):
         # Need to ensure connectivity
 
         x = torch.zeros(sum(block_sizes), 1)
-        x[0][0] = torch.randint(1, 10)
-        x[-1][0] = torch.randint(11, 20)
+        x[0][0] = torch.randint(1, 10, size=(1,)).item()
+        x[-1][0] = torch.randint(11, 20, size=(1,)).item()
 
         y = x.clone()
         y[0][0] = x[-1][0]
