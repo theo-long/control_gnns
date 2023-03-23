@@ -82,7 +82,7 @@ class GCN(nn.Module):
 
         if self.num_mlp_layers < 2:
             # Sum embeddings
-            x = x.sum(axis=0)
+            x = x.sum(axis=1)
 
         if self.control_type == "null":
             x = self.gcn_block(x, data.edge_index)
