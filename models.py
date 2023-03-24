@@ -35,6 +35,7 @@ class GCN(nn.Module):
 
         self.control_type = control_type
 
+        self.num_mlp_layers = num_mlp_layers
         if num_mlp_layers >= 2:
             self.encoder = MLPBlock(
                 input_dim,
@@ -45,7 +46,7 @@ class GCN(nn.Module):
                 num_layers=num_mlp_layers,
             )
         else:
-            self.encoder = nn.Linear(input_dim, hidden_dim)
+            self.encoder = nn.Embedding(input_dim, hidden_dim)
 
         if control_type == "mp":
             control_kwargs["norm"] = norm
@@ -79,13 +80,21 @@ class GCN(nn.Module):
 
         x = self.encoder(x)
 
+        if self.num_mlp_layers < 2:
+            # Sum embeddings
+            x = x.sum(axis=1)
+
         if self.control_type == "null":
             x = self.gcn_block(x, data.edge_index)
         else:
             x = self.gcn_block(x, data.edge_index, data.control_edge_index)
 
-        if not self.is_node_classifier:
+        if getattr(data, "out_mask", None) is not None:
+            x = x[data.out_mask]
+        elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
+        else:
+            pass
 
         x = self.decoder(x)
 
@@ -121,8 +130,12 @@ class GraphMLP(nn.Module):
 
         x = self.encoder(x)
 
-        if not self.is_node_classifier:
+        if getattr(data, "out_mask", None) is not None:
+            x = x[data.out_mask]
+        elif not self.is_node_classifier:
             x = global_add_pool(x, data.batch)
+        else:
+            pass
 
         x = self.decoder(x)
 

@@ -20,7 +20,7 @@ from torch_geometric.datasets import (
     StochasticBlockModelDataset,
 )
 from torch_geometric.loader import DataLoader
-from synthetic_data import LinearDataset, TreeDataset
+from synthetic_data import LinearDataset, TreeDataset, LabelPropagationDataset
 
 
 SPLITS_LOC = pathlib.Path(__file__).parent / "test_train_splits"
@@ -65,6 +65,7 @@ DATASET_DICT = {
     "tree6": (TreeDataset, {"depth": 6}, False),
     "tree7": (TreeDataset, {"depth": 7}, False),
     "tree8": (TreeDataset, {"depth": 8}, False),
+    "labelprop": (LabelPropagationDataset, {}, False),
 }
 
 
@@ -74,8 +75,17 @@ class RankingTransform(BaseTransform):
     NOTE: any changes will not take effect without first deleting datasets/PROTEINS/processed
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, rankings=["degree", "b_centrality", "pr_centrality", "curvature"]
+    ) -> None:
         super().__init__()
+        self.rankings = rankings
+        self.methods_dict = {
+            "degree": self._degree,
+            "b_centrality": self._betweenness_centrality,
+            "pr_centrality": self._pagerank_centrality,
+            "curvature": self._curvature,
+        }
 
     def _degree(self, data: Data):
         """wraps nx.degree to return flat tensor"""
@@ -119,18 +129,14 @@ class RankingTransform(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
 
+        rankings_dict = {}
         # adds new fields for node rankings
-        degree_rankings = self._node_rankings(data, self._degree)
-        between_cent_rankings = self._node_rankings(data, self._betweenness_centrality)
-        pr_rankings = self._node_rankings(data, self._pagerank_centrality)
-        curvature = self._node_rankings(data, self._curvature)
+        for ranking in self.rankings:
+            rankings_dict[ranking] = self._node_rankings(
+                data, self.methods_dict[ranking]
+            )
 
-        data.node_rankings = {
-            "degree": degree_rankings,
-            "b_centrality": between_cent_rankings,
-            "pr_centrality": pr_rankings,
-            "curvature": curvature,
-        }
+        data.node_rankings = rankings_dict
 
         return data
 
@@ -327,17 +333,28 @@ def get_dataset(
     control_self_adj,
     active_nodes: Optional[List],
 ):
+    transforms = []
+    pre_transforms = []
+
+    if "sbm" in name:
+        pre_transforms.append(StochasticBlockModelTransform())
+
+    if ("linear" in name) or ("tree" in name) or ("labelprop" in name):
+        # synthetic datasets have no pre-transform
+        transforms.append(RankingTransform(rankings=[control_metric]))
+    else:
+        pre_transforms.append(RankingTransform())
 
     if control_type != "null":
-        transform = ControlTransform(
-            control_edges, control_metric, num_active, control_self_adj, active_nodes
+        transforms.append(
+            ControlTransform(
+                control_edges,
+                control_metric,
+                num_active,
+                control_self_adj,
+                active_nodes,
+            )
         )
-    else:
-        transform = None
-
-    pre_transforms = [RankingTransform()]
-    if "sbm" in name:
-        pre_transforms = [StochasticBlockModelTransform()] + pre_transforms
 
     dataset_class, dataset_kwargs, is_node_classifier = DATASET_DICT[name]
 
@@ -345,7 +362,7 @@ def get_dataset(
         root="./datasets",
         name=name,
         pre_transform=Compose(pre_transforms),
-        transform=transform,
+        transform=Compose(transforms),
         **dataset_kwargs,
     )
 
@@ -381,13 +398,13 @@ def get_test_val_train_mask(
 
 def generate_dataloaders(dataset: TUDataset, dataset_name, batch_size, split=0):
 
-    if "tree" in dataset_name:
+    if "tree" or "labelprop" in dataset_name:
         train_size = int(len(dataset) * 0.8)
         test_size = int(len(dataset) * 0.1)
         splits = [
             list(range(0, train_size)),
             list(range(train_size, train_size + test_size)),
-            list(train_size + test_size, len(dataset)),
+            list(range(train_size + test_size, len(dataset))),
         ]
     else:
         splits = get_test_val_train_split(dataset_name, split)

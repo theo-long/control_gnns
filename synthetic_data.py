@@ -21,6 +21,7 @@ from torch_geometric.utils import (
 )
 
 from torch_geometric.data import Data, InMemoryDataset, Dataset
+from torch_geometric.utils import stochastic_blockmodel_graph
 import torch_geometric
 import torch
 
@@ -154,9 +155,6 @@ class TreeDataset(InMemoryDataset):
         data = self.generate_data()
         self.data, self.slices = self.collate(data)
 
-        dim0, out_dim = self.get_dims()
-        self.num_classes = out_dim
-
     def add_child_edges(self, cur_node, max_node):
         edges = []
         leaf_indices = []
@@ -196,7 +194,7 @@ class TreeDataset(InMemoryDataset):
             root_mask = torch.tensor([True] + [False] * (len(nodes) - 1))
             label = self.label(comb)
             data_list.append(
-                Data(x=nodes, edge_index=edge_index, root_mask=root_mask, y=label)
+                Data(x=nodes, edge_index=edge_index, out_mask=root_mask, y=label - 1)
             )
 
         return data_list
@@ -251,7 +249,7 @@ class TreeDataset(InMemoryDataset):
 
     def get_dims(self):
         # get input and output dims
-        in_dim = len(self.leaf_indices)
+        in_dim = len(self.leaf_indices) + 1
         out_dim = len(self.leaf_indices)
         return in_dim, out_dim
 
@@ -289,7 +287,7 @@ class LinearDataset(InMemoryDataset):
         out_bridges = in_bridges[[1, 0]]
         edge_index = torch.cat([edge_index, in_bridges, out_bridges], -1)
 
-        x = torch.ones((num_nodes * num_parts, 1))
+        x = torch.ones((num_nodes * num_parts, 1)).to(torch.float32)
         y = torch.arange(0, num_parts).repeat_interleave(num_nodes)
 
         # Generate masks
@@ -307,6 +305,47 @@ class LinearDataset(InMemoryDataset):
         )
 
         return data
+
+
+class LabelPropagationDataset(InMemoryDataset):
+    def __init__(
+        self,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        **kwargs
+    ):
+        super().__init__(transform=transform, pre_transform=pre_transform)
+        self.data, self.slices = self.collate(
+            [self._generate_data() for i in range(5000)]
+        )
+
+    def _generate_data(self):
+        block_sizes = [20, 20, 20, 20]
+        edge_probs = torch.tensor(
+            [
+                [0.8, 0.05, 0.0, 0.0],
+                [0.05, 0.8, 0.05, 0.0],
+                [0.0, 0.05, 0.8, 0.05],
+                [0.0, 0.0, 0.05, 0.8],
+            ]
+        )
+        edge_index = stochastic_blockmodel_graph(block_sizes, edge_probs)
+
+        # Need to ensure connectivity
+
+        x = torch.zeros(sum(block_sizes), 1, dtype=torch.long)
+        x[0][0] = 1
+        x[-1][0] = torch.randint(2, 11, size=(1,)).item()
+
+        # The goal is to propagate the label at x[-1][0] to the node at x[0][0]
+        y = x[-1][0]
+        out_mask = torch.zeros(sum(block_sizes), dtype=torch.bool)
+        out_mask[0] = 1
+
+        return Data(edge_index=edge_index, x=x, y=y, out_mask=out_mask)
+
+    def get_dims(self):
+        return 12, 12
 
 
 if __name__ == "__main__":
